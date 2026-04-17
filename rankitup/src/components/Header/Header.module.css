@@ -1,0 +1,42 @@
+.header {
+  background: var(--header-bg);
+  color: var(--text-header);
+}
+
+.logo {
+  height: 10vh;
+  margin: 18px 0 16px 16px;
+  float: left;
+}
+
+.title {
+  font-size: 5vh;
+  line-height: 11vh;
+  letter-spacing: -0.24px;
+  margin: 16px 0;
+  font-weight: 700;
+  float: left;
+}
+
+.nav {
+  display: flex;
+  gap: 24px;
+  margin: 34px 16px;
+  float: right;
+  li {
+    list-style: none;
+    border-radius: 8px;
+    transition: background 0.3s;
+    a {
+      color: var(--text-header);
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 500;
+      margin: 8px 16px;
+    }
+  }
+  li:hover {
+    background: var(--header-bg-hover);
+    transition: background 0.3s;
+  }
+}
