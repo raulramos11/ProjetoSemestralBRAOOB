@@ -36,29 +36,3 @@ public class DesempenhoPartida {
     private Resultado resultado;
 }
 
-@Embeddable
-@Getter
-@Setter
-@NoArgsConstructor
-class DesempenhoPartidaId implements Serializable {
-
-    @Column(name = "id_partida")
-    private Long idPartida;
-
-    @Column(name = "id_inscricao")
-    private Long idInscricao;
-
-    // O JPA exige os métodos equals e hashCode para chaves compostas compararem os IDs corretamente
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DesempenhoPartidaId that = (DesempenhoPartidaId) o;
-        return Objects.equals(idPartida, that.idPartida) && Objects.equals(idInscricao, that.idInscricao);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(idPartida, idInscricao);
-    }
-}
