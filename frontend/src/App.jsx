@@ -1,12 +1,20 @@
-import { useState } from 'react'
-import './App.css'
-import Header from './components/Header/Header.jsx';
+import React from 'react';
+import { ThemeProvider } from './context/ThemeContext';
+import Header from './components/Header/Header';
+import Dashboard from './pages/Dashboard/Dashboard';
 
-export default function App() {
-  return (
-    <>
-      <Header />
-      <h1>Rank It Up!</h1><h2>TESTE</h2>
-    </>
-  )
+function App() {
+    return (
+        <ThemeProvider>
+            <div className="min-h-screen flex flex-col">
+                <Header />
+
+                <main className="flex-1">
+                    <Dashboard />
+                </main>
+            </div>
+        </ThemeProvider>
+    );
 }
+
+export default App;
