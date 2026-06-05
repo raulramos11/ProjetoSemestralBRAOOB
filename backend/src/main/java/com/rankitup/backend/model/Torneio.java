@@ -1,5 +1,6 @@
 package com.rankitup.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,5 +31,6 @@ public class Torneio {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_jogo", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Jogo jogo;
 }
