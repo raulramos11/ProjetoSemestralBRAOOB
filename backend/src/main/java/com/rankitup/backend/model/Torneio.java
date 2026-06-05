@@ -33,4 +33,11 @@ public class Torneio {
     @JoinColumn(name = "id_jogo", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Jogo jogo;
+
+    // Problema 6 — vínculo com o admin criador (RGN-07)
+    // Somente o admin que criou o torneio pode inserir/editar resultados
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_admin_criador", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "senha"})
+    private Administrador criador;
 }

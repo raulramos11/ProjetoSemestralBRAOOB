@@ -28,7 +28,7 @@ public class RankingService {
         double expectativaB = calcularProbabilidadeVitoria(ratingB, ratingA);
 
         double placarA = converterResultadoParaPlacar(resultadoA);
-        double placarB = converterResultadoParaPlacar(inverter(resultadoA));
+        double placarB = converterResultadoParaPlacar(inverterResultado(resultadoA));
 
         int variacaoA = (int) Math.round(K_FACTOR * (placarA - expectativaA));
         int variacaoB = (int) Math.round(K_FACTOR * (placarB - expectativaB));
@@ -41,16 +41,16 @@ public class RankingService {
 
         // Atualiza jogador B
         inscricaoB.setPontosAcumulados(Math.max(0, ratingB + variacaoB));
-        if (inverter(resultadoA) == Resultado.VITORIA) {
+        if (inverterResultado(resultadoA) == Resultado.VITORIA) {
             inscricaoB.setVitoriasTotais(inscricaoB.getVitoriasTotais() + 1);
         }
     }
 
-    private Resultado inverter(Resultado resultado) {
+    public Resultado inverterResultado(Resultado resultado) {
         return switch (resultado) {
-            case VITORIA  -> Resultado.DERROTA;
-            case DERROTA  -> Resultado.VITORIA;
-            case EMPATE   -> Resultado.EMPATE;
+            case VITORIA -> Resultado.DERROTA;
+            case DERROTA -> Resultado.VITORIA;
+            case EMPATE  -> Resultado.EMPATE;
         };
     }
 

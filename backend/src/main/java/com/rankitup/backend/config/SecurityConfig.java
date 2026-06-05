@@ -35,6 +35,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,  "/api/torneios").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/inscricoes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/jogos").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/cadastro").permitAll()
+
 
                         // Rotas de admin — só ROLE_ADMIN
                         .requestMatchers("/api/partidas/**").hasAuthority("ROLE_ADMIN")
@@ -43,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/inscricoes").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/inscricoes/*/status").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/inscricoes/torneio/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/usuarios").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasAuthority("ROLE_ADMIN")
 
                         // Qualquer outra rota exige login
                         .anyRequest().authenticated()

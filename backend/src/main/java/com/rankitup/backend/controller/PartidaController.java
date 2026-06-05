@@ -8,7 +8,9 @@ import com.rankitup.backend.repository.InscricaoRepository;
 import com.rankitup.backend.repository.PartidaRepository;
 import com.rankitup.backend.service.RankingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,36 +32,92 @@ public class PartidaController {
 
     @PostMapping
     public ResponseEntity<Partida> cadastrar(@RequestBody Partida novaPartida) {
-        Partida partidaSalva = partidaRepository.save(novaPartida);
-        return ResponseEntity.ok(partidaSalva);
+        return ResponseEntity.ok(partidaRepository.save(novaPartida));
     }
 
-    // Endpoint principal desta correção.
-    // Recebe os dois jogadores e o resultado, processa o Elo de ambos
-    // na mesma transação — nenhum rating fica inconsistente.
+    // Atualiza a fase do torneio de uma partida existente (REQ-10)
+    @PutMapping("/{id}")
+    public ResponseEntity<?> atualizar(@PathVariable Long id,
+                                       @RequestBody Partida dadosAtualizados,
+                                       Authentication authentication) {
+
+        Partida partida = partidaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Partida não encontrada."));
+
+        // RGN-07: só o criador do torneio pode editar
+        String emailAdmin   = authentication.getName();
+        String emailCriador = partida.getTorneio().getCriador().getEmail();
+        if (!emailAdmin.equals(emailCriador)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Apenas o organizador deste torneio pode editar partidas.");
+        }
+
+        if (dadosAtualizados.getFaseTorneio() != null) {
+            partida.setFaseTorneio(dadosAtualizados.getFaseTorneio());
+        }
+
+        return ResponseEntity.ok(partidaRepository.save(partida));
+    }
+
+    // Exclui uma partida e reverte o Elo dos jogadores envolvidos (REQ-10)
+    @Transactional
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> excluir(@PathVariable Long id,
+                                     @RequestBody ResultadoPartidaDTO dto,
+                                     Authentication authentication) {
+
+        Partida partida = partidaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Partida não encontrada."));
+
+        // RGN-07: só o criador do torneio pode excluir
+        String emailAdmin   = authentication.getName();
+        String emailCriador = partida.getTorneio().getCriador().getEmail();
+        if (!emailAdmin.equals(emailCriador)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Apenas o organizador deste torneio pode excluir partidas.");
+        }
+
+        Inscricao inscricaoA = inscricaoRepository.findById(dto.idInscricaoA())
+                .orElseThrow(() -> new IllegalArgumentException("Inscrição A não encontrada."));
+        Inscricao inscricaoB = inscricaoRepository.findById(dto.idInscricaoB())
+                .orElseThrow(() -> new IllegalArgumentException("Inscrição B não encontrada."));
+
+        // Reprocessa o Elo invertendo o resultado — anula o efeito da partida
+        rankingService.processarDuelo(inscricaoA, inscricaoB,
+                rankingService.inverterResultado(dto.resultadoA()));
+
+        inscricaoRepository.saveAll(List.of(inscricaoA, inscricaoB));
+        partidaRepository.deleteById(id);
+
+        return ResponseEntity.ok("Partida excluída e rankings revertidos.");
+    }
+
+    // Registra o resultado e atualiza o Elo de ambos na mesma transação
     @Transactional
     @PostMapping("/{id}/resultado")
-    public ResponseEntity<?> registrarResultado(
-            @PathVariable Long id,
-            @RequestBody ResultadoPartidaDTO dto) {
+    public ResponseEntity<?> registrarResultado(@PathVariable Long id,
+                                                @RequestBody ResultadoPartidaDTO dto,
+                                                Authentication authentication) {
 
-        // Valida que a partida existe
-        partidaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Partida não encontrada."));
+        Partida partida = partidaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Partida não encontrada."));
 
-        // Busca as duas inscrições
+        String emailAdmin   = authentication.getName();
+        String emailCriador = partida.getTorneio().getCriador().getEmail();
+        if (!emailAdmin.equals(emailCriador)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Apenas o organizador deste torneio pode registrar resultados.");
+        }
+
         Inscricao inscricaoA = inscricaoRepository.findById(dto.idInscricaoA())
-                .orElseThrow(() -> new RuntimeException("Inscrição do jogador A não encontrada."));
-
+                .orElseThrow(() -> new IllegalArgumentException("Inscrição do jogador A não encontrada."));
         Inscricao inscricaoB = inscricaoRepository.findById(dto.idInscricaoB())
-                .orElseThrow(() -> new RuntimeException("Inscrição do jogador B não encontrada."));
+                .orElseThrow(() -> new IllegalArgumentException("Inscrição do jogador B não encontrada."));
 
-        // RGN-05: jogador não pode enfrentar a si mesmo
         if (dto.idInscricaoA().equals(dto.idInscricaoB())) {
             return ResponseEntity.badRequest().body("Um jogador não pode enfrentar a si mesmo.");
         }
 
-        // RGN-04: só jogadores com inscrição APROVADA podem participar de partidas
         if (inscricaoA.getStatus() != StatusInscricao.APROVADO) {
             return ResponseEntity.badRequest().body("Jogador A não tem inscrição aprovada neste torneio.");
         }
@@ -67,10 +125,7 @@ public class PartidaController {
             return ResponseEntity.badRequest().body("Jogador B não tem inscrição aprovada neste torneio.");
         }
 
-        // Processa o Elo dos dois com ratings reais — problema 3 e 4 resolvidos
         rankingService.processarDuelo(inscricaoA, inscricaoB, dto.resultadoA());
-
-        // Salva os dois na mesma transação
         inscricaoRepository.saveAll(List.of(inscricaoA, inscricaoB));
 
         return ResponseEntity.ok("Resultado registrado e rankings atualizados.");
