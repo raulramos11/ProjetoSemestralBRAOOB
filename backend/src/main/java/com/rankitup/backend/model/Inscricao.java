@@ -1,6 +1,7 @@
 package com.rankitup.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.rankitup.backend.model.enums.StatusInscricao;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,12 @@ public class Inscricao {
     @JoinColumn(name = "id_jogador", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Jogador jogador;
+
+    // Problema 5 — campo de status de aprovação
+    // Todo jogador começa PENDENTE e só participa de partidas após ser APROVADO (RGN-04)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StatusInscricao status = StatusInscricao.PENDENTE;
 
     @Column(name = "pontos_acumulados")
     private Integer pontosAcumulados = 0;

@@ -3,6 +3,7 @@ package com.rankitup.backend.controller;
 import com.rankitup.backend.dto.ResultadoPartidaDTO;
 import com.rankitup.backend.model.Inscricao;
 import com.rankitup.backend.model.Partida;
+import com.rankitup.backend.model.enums.StatusInscricao;
 import com.rankitup.backend.repository.InscricaoRepository;
 import com.rankitup.backend.repository.PartidaRepository;
 import com.rankitup.backend.service.RankingService;
@@ -56,6 +57,14 @@ public class PartidaController {
         // RGN-05: jogador não pode enfrentar a si mesmo
         if (dto.idInscricaoA().equals(dto.idInscricaoB())) {
             return ResponseEntity.badRequest().body("Um jogador não pode enfrentar a si mesmo.");
+        }
+
+        // RGN-04: só jogadores com inscrição APROVADA podem participar de partidas
+        if (inscricaoA.getStatus() != StatusInscricao.APROVADO) {
+            return ResponseEntity.badRequest().body("Jogador A não tem inscrição aprovada neste torneio.");
+        }
+        if (inscricaoB.getStatus() != StatusInscricao.APROVADO) {
+            return ResponseEntity.badRequest().body("Jogador B não tem inscrição aprovada neste torneio.");
         }
 
         // Processa o Elo dos dois com ratings reais — problema 3 e 4 resolvidos

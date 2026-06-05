@@ -1,4 +1,5 @@
 package com.rankitup.backend.model;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.rankitup.backend.model.enums.PerfilUsuario;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public abstract class Usuario{
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String senha;
 

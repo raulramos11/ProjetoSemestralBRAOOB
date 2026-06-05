@@ -41,6 +41,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/desempenhos/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/torneios").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/inscricoes").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/inscricoes/*/status").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/inscricoes/torneio/**").permitAll()
 
                         // Qualquer outra rota exige login
                         .anyRequest().authenticated()
