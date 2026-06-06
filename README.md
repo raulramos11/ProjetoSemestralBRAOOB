@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:8080`
 
+> **Versão:** 2.0 — atualizada após correções P1, P2 e P3
+
 ---
 
 ## Autenticação
@@ -12,7 +14,21 @@ A API usa **JWT (Bearer Token)**. Após o login, inclua o token em todas as requ
 Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
 ```
 
-Rotas públicas (não precisam de token): `POST /api/usuarios/cadastro`, `POST /api/usuarios/login`, `GET /api/torneios`, `GET /api/inscricoes`, `GET /api/jogos`.
+**Rotas públicas** (sem token): `POST /api/usuarios/cadastro`, `POST /api/usuarios/login`, `GET /api/torneios`, `GET /api/inscricoes`, `GET /api/jogos`, `GET /api/equipes`.
+
+---
+
+## Formato de erro padrão
+
+Todos os erros retornam neste formato:
+
+```json
+{
+  "timestamp": "2026-06-05T16:00:00.123",
+  "status": 404,
+  "erro": "Usuário não encontrado."
+}
+```
 
 ---
 
@@ -32,12 +48,11 @@ Rotas públicas (não precisam de token): `POST /api/usuarios/cadastro`, `POST /
 }
 ```
 
-> Para admin, omita `nome` e `nickname` e use `"perfil": "ROLE_ADMIN"`.
+> Para admin omita `nome` e `nickname` e use `"perfil": "ROLE_ADMIN"`.
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
-| 201 | Usuário criado com sucesso |
+| 201 | Usuário criado |
 | 409 | E-mail já cadastrado |
 
 ---
@@ -53,16 +68,15 @@ Rotas públicas (não precisam de token): `POST /api/usuarios/cadastro`, `POST /
 }
 ```
 
-**Respostas:**
+**Resposta 200:** token JWT como string
+```
+eyJhbGciOiJIUzM4NCJ9...
+```
+
 | Status | Descrição |
 |--------|-----------|
-| 200 | Retorna o token JWT como string |
-| 401 | E-mail não encontrado ou senha incorreta |
-
-**Exemplo de resposta:**
-```
-eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
-```
+| 200 | Retorna token JWT |
+| 401 | E-mail ou senha incorretos |
 
 ---
 
@@ -79,7 +93,7 @@ eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
     "nome": "João Silva",
     "nickname": "joaosilva",
     "fotoPerfil": null,
-    "equipe": null
+    "equipe": { "idEquipe": 1, "nomeEquipe": "Team Alpha", "tagEquipe": "ALPH", "paisOrigem": "Brasil" }
   }
 ]
 ```
@@ -89,20 +103,6 @@ eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
 ### Buscar usuário por ID
 `GET /api/usuarios/{id}` — **autenticado**
 
-**Resposta 200:**
-```json
-{
-  "idUsuario": 1,
-  "email": "jogador@email.com",
-  "perfil": "ROLE_USER",
-  "nome": "João Silva",
-  "nickname": "joaosilva",
-  "fotoPerfil": null,
-  "equipe": null
-}
-```
-
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | Usuário encontrado |
@@ -123,7 +123,6 @@ eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
 }
 ```
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | Usuário atualizado |
@@ -135,11 +134,50 @@ eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
 ### Excluir usuário
 `DELETE /api/usuarios/{id}` — **admin**
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | `"Usuário excluído com sucesso."` |
 | 404 | Usuário não encontrado |
+
+---
+
+## Equipes
+
+### Listar todas as equipes
+`GET /api/equipes` — **público**
+
+**Resposta 200:**
+```json
+[
+  {
+    "idEquipe": 1,
+    "nomeEquipe": "Team Alpha",
+    "tagEquipe": "ALPH",
+    "paisOrigem": "Brasil"
+  }
+]
+```
+
+---
+
+### Cadastrar equipe
+`POST /api/equipes` — **autenticado**
+
+**Body:**
+```json
+{
+  "nomeEquipe": "Team Alpha",
+  "tagEquipe": "ALPH",
+  "paisOrigem": "Brasil"
+}
+```
+
+> `tagEquipe` deve ser única no sistema (máx. 10 caracteres).
+
+| Status | Descrição |
+|--------|-----------|
+| 200 | Equipe criada |
+| 500 | Tag já em uso |
 
 ---
 
@@ -174,7 +212,6 @@ eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
 }
 ```
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | Jogo criado |
@@ -205,7 +242,7 @@ eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2dhZG9yQGVtYWlsLmNvbSJ9...
 ### Criar torneio
 `POST /api/torneios` — **admin**
 
-O campo `criador` é preenchido automaticamente com o admin do token — não precisa enviar.
+> O campo `criador` é preenchido automaticamente com o admin do token — não envie.
 
 **Body:**
 ```json
@@ -216,7 +253,6 @@ O campo `criador` é preenchido automaticamente com o admin do token — não pr
 }
 ```
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | Torneio criado com criador vinculado automaticamente |
@@ -229,15 +265,16 @@ O campo `criador` é preenchido automaticamente com o admin do token — não pr
 ### Listar todas as inscrições
 `GET /api/inscricoes` — **público**
 
-Serve como tabela de ranking geral.
+Serve como tabela de ranking geral. Retorna `pontosAcumulados` e `vitoriasTotais` de cada jogador por torneio.
 
 **Resposta 200:**
 ```json
 [
   {
     "idInscricao": 1,
-    "torneio": { "idTorneio": 1, "nome": "Torneio Verão", "..." : "..." },
-    "jogador": { "idUsuario": 4, "nickname": "joaosilva", "..." : "..." },
+    "torneio": { "idTorneio": 1, "nome": "Torneio Verão" },
+    "jogador": { "idUsuario": 4, "nickname": "joaosilva" },
+    "equipe": { "idEquipe": 1, "nomeEquipe": "Team Alpha", "tagEquipe": "ALPH" },
     "status": "APROVADO",
     "pontosAcumulados": 47,
     "vitoriasTotais": 3,
@@ -251,18 +288,18 @@ Serve como tabela de ranking geral.
 ### Listar inscrições de um torneio por status
 `GET /api/inscricoes/torneio/{idTorneio}?status=APROVADO` — **público**
 
-Valores possíveis para `status`: `PENDENTE`, `APROVADO`, `REJEITADO`.
-
-Default: `APROVADO` (se não passar o parâmetro, retorna só os aprovados).
+| Parâmetro | Valores possíveis | Default |
+|-----------|-------------------|---------|
+| `status` | `PENDENTE`, `APROVADO`, `REJEITADO` | `APROVADO` |
 
 ---
 
 ### Inscrever jogador em torneio
 `POST /api/inscricoes` — **admin**
 
-A inscrição começa automaticamente como `PENDENTE`.
+A inscrição começa automaticamente como `PENDENTE`. O campo `equipe` é opcional.
 
-**Body:**
+**Body sem equipe:**
 ```json
 {
   "torneio": { "idTorneio": 1 },
@@ -270,10 +307,18 @@ A inscrição começa automaticamente como `PENDENTE`.
 }
 ```
 
-**Respostas:**
+**Body com equipe (RGN-09):**
+```json
+{
+  "torneio": { "idTorneio": 1 },
+  "jogador": { "idUsuario": 4 },
+  "equipe": { "idEquipe": 1 }
+}
+```
+
 | Status | Descrição |
 |--------|-----------|
-| 200 | Inscrição criada com status PENDENTE |
+| 200 | Inscrição criada com status `PENDENTE` |
 | 500 | Jogador já inscrito neste torneio |
 
 ---
@@ -281,9 +326,11 @@ A inscrição começa automaticamente como `PENDENTE`.
 ### Aprovar ou rejeitar inscrição
 `PATCH /api/inscricoes/{id}/status?status=APROVADO` — **admin**
 
-Valores possíveis: `APROVADO`, `REJEITADO`.
+| Valor | Descrição |
+|-------|-----------|
+| `APROVADO` | Jogador liberado para participar de partidas |
+| `REJEITADO` | Jogador bloqueado |
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | Status atualizado |
@@ -314,7 +361,9 @@ Valores possíveis: `APROVADO`, `REJEITADO`.
 ### Registrar resultado e atualizar Elo
 `POST /api/partidas/{id}/resultado` — **admin (criador do torneio)**
 
-O `resultadoA` é o resultado do jogador A. O jogador B recebe o inverso automaticamente.
+O `resultadoA` é o resultado do jogador A. O jogador B recebe o inverso automaticamente. O Elo de ambos é atualizado na mesma transação.
+
+> **Fator K dinâmico:** jogadores com menos de 10 vitórias usam K=40, entre 10-30 usam K=32, acima de 30 usam K=20.
 
 **Body:**
 ```json
@@ -325,13 +374,16 @@ O `resultadoA` é o resultado do jogador A. O jogador B recebe o inverso automat
 }
 ```
 
-Valores possíveis para `resultadoA`: `VITORIA`, `DERROTA`, `EMPATE`.
+| `resultadoA` | Efeito no jogador B |
+|--------------|---------------------|
+| `VITORIA` | DERROTA |
+| `DERROTA` | VITORIA |
+| `EMPATE` | EMPATE |
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | `"Resultado registrado e rankings atualizados."` |
-| 400 | Jogador sem inscrição aprovada ou jogador contra si mesmo |
+| 400 | Inscrição não aprovada ou jogador contra si mesmo |
 | 403 | Apenas o criador do torneio pode registrar resultados |
 | 404 | Partida ou inscrição não encontrada |
 
@@ -347,7 +399,6 @@ Valores possíveis para `resultadoA`: `VITORIA`, `DERROTA`, `EMPATE`.
 }
 ```
 
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | Partida atualizada |
@@ -359,7 +410,9 @@ Valores possíveis para `resultadoA`: `VITORIA`, `DERROTA`, `EMPATE`.
 ### Excluir partida e reverter Elo
 `DELETE /api/partidas/{id}` — **admin (criador do torneio)**
 
-Ao excluir, o Elo de ambos os jogadores é revertido automaticamente.
+Ao excluir, o Elo de ambos os jogadores é **revertido automaticamente**.
+
+> Informe o resultado **original** da partida para que o Elo seja revertido corretamente.
 
 **Body:**
 ```json
@@ -370,9 +423,6 @@ Ao excluir, o Elo de ambos os jogadores é revertido automaticamente.
 }
 ```
 
-> Informe o resultado original da partida para que o Elo seja revertido corretamente.
-
-**Respostas:**
 | Status | Descrição |
 |--------|-----------|
 | 200 | `"Partida excluída e rankings revertidos."` |
@@ -381,30 +431,18 @@ Ao excluir, o Elo de ambos os jogadores é revertido automaticamente.
 
 ---
 
-## Formato de erro padrão
-
-Todos os erros retornam no seguinte formato:
-
-```json
-{
-  "timestamp": "2026-06-05T16:00:00.123",
-  "status": 404,
-  "erro": "Usuário não encontrado."
-}
-```
-
----
-
 ## Fluxo completo sugerido
 
 ```
-1. POST /api/usuarios/cadastro        → criar admin e jogadores
-2. POST /api/usuarios/login           → obter token JWT
-3. POST /api/jogos                    → cadastrar o jogo
-4. POST /api/torneios                 → criar torneio (criador vinculado pelo token)
-5. POST /api/inscricoes               → inscrever jogadores (status: PENDENTE)
-6. PATCH /api/inscricoes/{id}/status  → aprovar inscrições
-7. POST /api/partidas                 → criar partida
-8. POST /api/partidas/{id}/resultado  → registrar resultado e atualizar Elo
-9. GET  /api/inscricoes               → consultar ranking
+1.  POST /api/usuarios/cadastro              → criar admin e jogadores
+2.  POST /api/usuarios/login                 → obter token JWT
+3.  POST /api/equipes                        → criar equipes (opcional)
+4.  POST /api/jogos                          → cadastrar o jogo
+5.  POST /api/torneios                       → criar torneio (criador vinculado pelo token)
+6.  POST /api/inscricoes                     → inscrever jogadores (status: PENDENTE)
+7.  PATCH /api/inscricoes/{id}/status        → aprovar inscrições
+8.  POST /api/partidas                       → criar partida
+9.  POST /api/partidas/{id}/resultado        → registrar resultado e atualizar Elo
+10. GET  /api/inscricoes                     → consultar ranking geral
+11. GET  /api/inscricoes/torneio/{id}        → ranking de um torneio específico
 ```
