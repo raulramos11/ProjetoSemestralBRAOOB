@@ -9,10 +9,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // O asterisco duplo libera o CORS para TODAS as suas rotas (/api/...)
-                .allowedOrigins("http://localhost:3000", "http://localhost:5173") // Libera as portas padrão do React e do Vite
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Permite os comandos que criamos
-                .allowedHeaders("*") // Aceita qualquer cabeçalho no JSON
-                .allowCredentials(true); // Super importante para quando criarmos o Login/JWT!
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:3000", "http://localhost:5173")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                // Problema 12 — Authorization explícito para JWT não ser bloqueado pelo browser
+                .allowedHeaders("Authorization", "Content-Type", "Accept")
+                .allowCredentials(true);
     }
 }

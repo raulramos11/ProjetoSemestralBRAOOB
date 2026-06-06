@@ -31,8 +31,12 @@ public class Inscricao {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Jogador jogador;
 
-    // Problema 5 — campo de status de aprovação
-    // Todo jogador começa PENDENTE e só participa de partidas após ser APROVADO (RGN-04)
+    // Problema 10 — RGN-09: jogador só pode estar em uma equipe por torneio
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_equipe")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private Equipe equipe;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatusInscricao status = StatusInscricao.PENDENTE;
