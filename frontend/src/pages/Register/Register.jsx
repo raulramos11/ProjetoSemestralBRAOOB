@@ -1,113 +1,228 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../Login/Login.css';
+import { useAuth } from '../../context/AuthContext';
+import './Register.css';
 
 export default function Register() {
     const navigate = useNavigate();
+    const { register } = useAuth();
 
-    // Estados para capturar os inputs do formulário
     const [fullName, setFullName] = useState('');
+    const [nickname, setNickname] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
+    const validateForm = () => {
+        const errors = [];
+        
+        if (!fullName.trim()) errors.push('Nome completo é obrigatório');
+        if (!nickname.trim()) errors.push('Nickname é obrigatório');
+        if (!email.trim()) errors.push('Email é obrigatório');
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (email.trim() && !emailRegex.test(email)) errors.push('Email inválido');
+        
+        if (!password) errors.push('Senha é obrigatória');
+        if (password.length < 6) errors.push('Senha deve ter pelo menos 6 caracteres');
+        if (password !== confirmPassword) errors.push('Senhas não coincidem');
+        
+        if (errors.length > 0) {
+            setError(errors.join('. '));
+            return false;
+        }
+        return true;
+    };
 
     const handleRegister = async (e) => {
         e.preventDefault();
-
-        if (password !== confirmPassword) {
-            alert("As senhas não coincidem!");
-            return;
-        }
-
-
-        const novoUsuario = {
-            email: email,
-            senha: password,
-            perfil: "ROLE_USER" // 🌟 CORRIGIDO PARA BATER COM O ENUM DO JAVA
-        };
-
+        setError('');
+        
+        if (!validateForm()) return;
+        
+        setIsLoading(true);
         try {
-            // ⚠️ Certifique-se de alinhar a URL abaixo com a rota do seu Controller no Java (ex: /api/usuarios ou /auth/register)
-            const response = await fetch('http://localhost:8080/api/usuarios', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(novoUsuario),
+            await register({
+                nome: fullName.trim(),
+                nickname: nickname.trim(),
+                email: email.trim(),
+                senha: password,
+                perfil: "ROLE_USER"
             });
-
-            if (response.ok) {
-                alert("Cadastro realizado com sucesso no MySQL!");
-                navigate('/login');
+            alert('Cadastro realizado com sucesso! Redirecionando para login...');
+            navigate('/login');
+        } catch (err) {
+            const msg = err.message || 'Erro ao cadastrar';
+            if (msg.includes('já cadastrado') || msg.includes('409')) {
+                setError('Este email já está cadastrado');
+            } else if (msg.includes('Network') || msg.includes('fetch')) {
+                setError('Erro de conexão. Verifique se o backend está rodando.');
             } else {
-                alert("Erro ao cadastrar. Verifique o console do Spring Boot.");
+                setError(msg);
             }
-        } catch (error) {
-            console.error("Erro na requisição:", error);
-            alert("Não foi possível conectar ao servidor backend.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
+    const passwordStrength = () => {
+        if (!password) return { level: 0, label: '', color: '' };
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        
+        if (score <= 1) return { level: 1, label: 'Fraca', color: '#ef4444' };
+        if (score === 2) return { level: 2, label: 'Média', color: '#f59e0b' };
+        if (score === 3) return { level: 3, label: 'Forte', color: '#22c55e' };
+        return { level: 4, label: 'Muito Forte', color: '#10b981' };
+    };
+
+    const strength = passwordStrength();
+
     return (
         <div className="auth-container">
-            <div className="auth-box" style={{ maxWidth: '550px' }}>
+            <div className="auth-box">
                 <div className="logo-section">
                     <h1 className="logo-text">RANK IT UP!</h1>
+                    <p className="subtitle">Crie sua conta de competidor</p>
                 </div>
 
-                <form onSubmit={handleRegister} className="auth-form">
-                    <h2 style={{ marginBottom: '30px' }}>Create Your Competitor Account</h2>
+                <form onSubmit={handleRegister} className="auth-form" noValidate>
+                    <h2>Nova Conta</h2>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    {error && <div className="error-message" role="alert">{error}</div>}
+
+                    <div className="input-row">
                         <div className="input-group">
-                            <label>Full Name</label>
+                            <label htmlFor="fullName">Nome Completo</label>
                             <input
+                                id="fullName"
                                 type="text"
-                                placeholder="John Doe"
+                                autoComplete="name"
+                                placeholder="João Silva"
                                 value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
+                                onChange={(e) => {
+                                    setFullName(e.target.value);
+                                    if (error) setError('');
+                                }}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
 
                         <div className="input-group">
-                            <label>Password</label>
+                            <label htmlFor="nickname">Nickname</label>
                             <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                id="nickname"
+                                type="text"
+                                autoComplete="username"
+                                placeholder="joaosilva"
+                                value={nickname}
+                                onChange={(e) => {
+                                    setNickname(e.target.value);
+                                    if (error) setError('');
+                                }}
                                 required
-                            />
-                        </div>
-
-                        <div className="input-group">
-                            <label>Email Address</label>
-                            <input
-                                type="email"
-                                placeholder="alex.smith@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <div className="input-group">
-                            <label>Confirm Password</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
+                                disabled={isLoading}
+                                minLength={3}
+                                maxLength={20}
                             />
                         </div>
                     </div>
 
-                    <button type="submit" className="btn-gradient" style={{ marginTop: '20px' }}>Create Account</button>
+                    <div className="input-group">
+                        <label htmlFor="regEmail">Email</label>
+                        <input
+                            id="regEmail"
+                            type="email"
+                            autoComplete="email"
+                            placeholder="seu@email.com"
+                            value={email}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                if (error) setError('');
+                            }}
+                            required
+                            disabled={isLoading}
+                        />
+                    </div>
 
-                    <p className="switch-auth" style={{ marginTop: '20px' }}>
-                        Already have an account? <span onClick={() => navigate('/login')}>Log in.</span>
+                    <div className="input-group">
+                        <label htmlFor="regPassword">Senha</label>
+                        <div className="password-wrapper">
+                            <input
+                                id="regPassword"
+                                type={showPassword ? 'text' : 'password'}
+                                autoComplete="new-password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    if (error) setError('');
+                                }}
+                                required
+                                disabled={isLoading}
+                                minLength={6}
+                            />
+                            <button
+                                type="button"
+                                className="toggle-password"
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                aria-pressed={showPassword}
+                            >
+                                {showPassword ? '👁️' : '👁️‍🗨️'}
+                            </button>
+                        </div>
+                        {password && (
+                            <div className="password-strength">
+                                <div className="strength-bar">
+                                    <div 
+                                        className="strength-fill" 
+                                        style={{ 
+                                            width: `${strength.level * 25}%`, 
+                                            backgroundColor: strength.color 
+                                        }} 
+                                    />
+                                </div>
+                                <span className="strength-label" style={{ color: strength.color }}>
+                                    {strength.label}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="input-group">
+                        <label htmlFor="confirmPassword">Confirmar Senha</label>
+                        <input
+                            id="confirmPassword"
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={(e) => {
+                                setConfirmPassword(e.target.value);
+                                if (error) setError('');
+                            }}
+                            required
+                            disabled={isLoading}
+                        />
+                        {confirmPassword && password !== confirmPassword && (
+                            <span className="field-error">As senhas não coincidem</span>
+                        )}
+                    </div>
+
+                    <button type="submit" className="btn-gradient" disabled={isLoading}>
+                        {isLoading ? 'Criando conta...' : 'CRIAR CONTA'}
+                    </button>
+
+                    <p className="switch-auth">
+                        Já tem conta? <span onClick={() => navigate('/login')}>Entrar</span>
                     </p>
                 </form>
             </div>

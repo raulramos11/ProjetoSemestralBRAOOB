@@ -1,6 +1,1 @@
-body {
-    margin: 0;
-    font-family: 'Poppins', sans-serif;
-    background-color: #f3f4f6; /* Fundo claro padrão para o Login */
-    color: #08060d;
-}
+@import './styles/globals.css';

@@ -57,7 +57,7 @@ public class UsuarioService {
             throw new IllegalArgumentException("Senha incorreta.");
         }
 
-        return jwtService.gerarToken(usuario.getEmail(), usuario.getPerfil().name());
+        return jwtService.gerarToken(usuario.getIdUsuario(), usuario.getEmail(), usuario.getPerfil().name());
     }
 
     // Listar todos — só admin

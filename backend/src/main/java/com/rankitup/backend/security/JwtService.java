@@ -22,15 +22,26 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // Gera um token JWT com o email e perfil do usuário
-    public String gerarToken(String email, String perfil) {
+    // Gera um token JWT com o email, id e perfil do usuário
+    public String gerarToken(Long id, String email, String perfil) {
         return Jwts.builder()
                 .subject(email)
+                .claim("id", id)
                 .claim("perfil", perfil)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getKey())
                 .compact();
+    }
+
+    // Extrai o ID do token
+    public Long extrairId(String token) {
+        return Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("id", Long.class);
     }
 
     // Extrai o email do token

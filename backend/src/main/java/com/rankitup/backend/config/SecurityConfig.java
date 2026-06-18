@@ -43,7 +43,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,  "/api/torneios/**").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/torneios").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/inscricoes").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/jogos").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/jogos/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/equipes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/cadastro").permitAll()
 
                         // Rotas de admin — só ROLE_ADMIN

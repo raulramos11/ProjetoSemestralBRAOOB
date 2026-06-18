@@ -27,4 +27,13 @@ public class Jogo {
     @Column(length = 100)
     private String desenvolvedora;
 
+    @Column(name = "imagem_url", length = 500)
+    private String imagemUrl;
+
+    @Column(name = "banner_url", length = 500)
+    private String bannerUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String descricao;
+
 }

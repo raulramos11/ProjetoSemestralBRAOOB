@@ -1,33 +1,143 @@
-import React from 'react';
-import { useTheme } from '../../context/ThemeContext'; // Ajuste o caminho se necessário
+import React, { useState, useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import ThemeToggle from '../ThemeToggle/ThemeToggle';
 import './Header.css';
 
-const Header = () => {
-    const { theme, toggleTheme } = useTheme();
+export default function Header() {
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const navLinks = [
+    { path: '/', label: 'Início' },
+    { path: '/torneios', label: 'Torneios' },
+    { path: '/jogos', label: 'Jogos' },
+    { path: '/equipes', label: 'Equipes' },
+    { path: '/leaderboard', label: 'Ranking' },
+  ];
+
+  const authLinks = isAuthenticated
+    ? [
+        { path: '/perfil', label: 'Meu Perfil' },
+        ...(user?.perfil === 'ROLE_ADMIN' ? [{ path: '/admin', label: 'Admin' }] : []),
+      ]
+    : [];
+
+  if (isLoading) {
     return (
-        <nav className="global-header">
-            {/* Logo / Título */}
-            <div className="text-xl font-black tracking-wider text-purple-600 dark:text-purple-400">
-                RANK IT UP!
-            </div>
-
-            {/* Links de Navegação entre suas páginas */}
-            <div className="flex gap-6 font-medium text-sm">
-                <a href="/dashboard" className="hover:text-purple-500 transition-colors">Visão Geral</a>
-                <a href="/leaderboards" className="hover:text-purple-500 transition-colors">Leaderboards</a>
-                <a href="/tournaments" className="hover:text-purple-500 transition-colors">Torneios</a>
-            </div>
-
-            {/* Botão de Alternar Tema */}
-            <button
-                onClick={toggleTheme}
-                className="px-4 py-2 rounded-full font-bold text-xs border border-gray-300 dark:border-gray-600 transition-all shadow-sm flex items-center gap-2 cursor-pointer bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:scale-105"
-            >
-                {theme === 'light' ? '🌙 Modo Escuro' : '☀️ Modo Claro'}
-            </button>
-        </nav>
+      <header className={`header ${scrolled ? 'scrolled' : ''}`}>
+        <div className="header-container">
+          <NavLink to="/" className="logo" aria-label="Rank It Up - Início">
+            <span className="logo-icon">◈</span>
+            <span className="logo-text">Rank It Up</span>
+          </NavLink>
+          <div className="header-spacer" />
+        </div>
+      </header>
     );
-};
+  }
 
-export default Header;
+  return (
+    <header className={`header ${scrolled ? 'scrolled' : ''}`} role="banner">
+      <div className="header-container">
+        <NavLink to="/" className="logo" aria-label="Rank It Up - Início" onClick={() => setMobileMenuOpen(false)}>
+          <span className="logo-icon">◈</span>
+          <span className="logo-text">Rank It Up</span>
+        </NavLink>
+
+        <nav className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`} role="navigation" aria-label="Navegação principal">
+          <ul className="nav-list">
+            {navLinks.map((link) => (
+              <li key={link.path}>
+                <NavLink
+                  to={link.path}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </NavLink>
+              </li>
+            ))}
+            {isAuthenticated && (
+              <>
+                <li className="nav-divider" aria-hidden="true"></li>
+                {authLinks.map((link) => (
+                  <li key={link.path}>
+                    <NavLink
+                      to={link.path}
+                      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </NavLink>
+                  </li>
+                ))}
+              </>
+            )}
+          </ul>
+        </nav>
+
+        <div className="header-actions">
+          <ThemeToggle />
+
+          {isAuthenticated ? (
+            <div className="user-menu">
+              <button
+                className="user-avatar"
+                onClick={() => { navigate('/perfil'); setMobileMenuOpen(false); }}
+                aria-label="Meu perfil"
+              >
+                {user?.fotoPerfil ? (
+                  <img src={user.fotoPerfil} alt="" />
+                ) : (
+                  <span className="avatar-placeholder">{user?.nickname?.[0]?.toUpperCase() || '?'}</span>
+                )}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
+                Sair
+              </button>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <NavLink to="/login" className="btn btn-ghost btn-sm" onClick={() => setMobileMenuOpen(false)}>
+                Entrar
+              </NavLink>
+              <NavLink to="/cadastro" className="btn btn-primary btn-sm" onClick={() => setMobileMenuOpen(false)}>
+                Cadastrar
+              </NavLink>
+            </div>
+          )}
+
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-menu"
+            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+          >
+            <span className="hamburger" aria-hidden="true">
+              <span className={mobileMenuOpen ? 'open' : ''}></span>
+              <span className={mobileMenuOpen ? 'open' : ''}></span>
+              <span className={mobileMenuOpen ? 'open' : ''}></span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}

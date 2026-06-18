@@ -29,6 +29,24 @@ public class Torneio {
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao = LocalDateTime.now();
 
+    @Column(name = "data_inicio")
+    private LocalDateTime dataInicio;
+
+    @Column(name = "data_fim")
+    private LocalDateTime dataFim;
+
+    @Column(name = "formato", length = 50)
+    private String formato;
+
+    @Column(name = "max_equipes")
+    private Integer maxEquipes = 16;
+
+    @Column(columnDefinition = "TEXT")
+    private String descricao;
+
+    @Column(columnDefinition = "TEXT")
+    private String regras;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_jogo", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})

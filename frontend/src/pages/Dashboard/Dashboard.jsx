@@ -1,58 +1,138 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import './Dashboard.css';
 
-const Dashboard = () => {
+export default function Dashboard() {
+    const { user, isAuthenticated } = useAuth();
+    const [stats, setStats] = useState(null);
+    const [recentMatches, setRecentMatches] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            // Get user stats from inscriptions
+            const inscriptions = await api.getInscriptions();
+            const userInscriptions = inscriptions.filter(i => i.jogador?.idUsuario === user?.idUsuario);
+            
+            let totalPontos = 0;
+            let totalVitorias = 0;
+            let totalDerrotas = 0;
+            let totalEmpates = 0;
+
+            userInscriptions.forEach(inc => {
+                totalPontos += inc.pontosAcumulados || 0;
+                totalVitorias += inc.vitoriasTotais || 0;
+            });
+
+            // Calculate win rate
+            const totalGames = totalVitorias + totalDerrotas + totalEmpates;
+            const winRate = totalGames > 0 ? Math.round((totalVitorias / totalGames) * 100) : 0;
+
+            setStats({
+                pontos: totalPontos,
+                vitorias: totalVitorias,
+                winRate: winRate,
+                inscricoes: userInscriptions.length
+            });
+
+            // For recent matches, we'd need a separate endpoint
+            // For now, show empty state
+            setRecentMatches([]);
+        } catch (err) {
+            setError('Erro ao carregar dashboard');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) return <div className="loading">Carregando dashboard...</div>;
+    if (error) return <div className="error">{error}</div>;
+    if (!isAuthenticated) return <div className="error">Você precisa estar logado.</div>;
+
     return (
-        <div className="dashboard-wrapper min-h-screen p-8 bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white transition-colors duration-300">
-            <div className="max-w-6xl mx-auto">
-                <h1 className="text-4xl font-bold text-center mb-10 tracking-tight text-gray-800 dark:text-white">
-                    Visão Geral
-                </h1>
+        <div className="dashboard-page">
+            <div className="container">
+                <div className="dashboard-header">
+                    <h1>Meu Dashboard</h1>
+                    <p className="welcome-text">Bem-vindo, {user?.nickname}!</p>
+                </div>
 
-                {/* 🏆 GRID DOS CARDS DO MEIO (Agora mudando de tema dinamicamente) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                    {/* Card 1: Posição */}
-                    <div className="bg-white border border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-white rounded-xl p-6 text-center shadow-md dark:shadow-xl transition-all duration-300">
-                        <span className="block text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Sua Posição (Global)</span>
-                        <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-500 mt-2 block">#42</span>
-                    </div>
-
-                    {/* Card 2: MMR */}
-                    <div className="bg-white border border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-white rounded-xl p-6 text-center shadow-md dark:shadow-xl transition-all duration-300">
-                        <span className="block text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Pontuação (MMR)</span>
-                        <span className="text-3xl font-extrabold text-purple-600 dark:text-purple-500 mt-2 block">2.150</span>
-                    </div>
-
-                    {/* Card 3: Win Rate */}
-                    <div className="bg-white border border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-white rounded-xl p-6 text-center shadow-md dark:shadow-xl transition-all duration-300">
-                        <span className="block text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">Taxa de Vitória</span>
-                        <span className="text-3xl font-extrabold text-green-600 dark:text-green-500 mt-2 block">68%</span>
-                    </div>
-
-                    {/* 🎮 CONTAINER DAS ÚLTIMAS PARTIDAS (Também adaptável) */}
-                    <div className="bg-white border border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-white rounded-xl p-6 md:col-span-3 shadow-md dark:shadow-xl text-left transition-all duration-300">
-                        <span className="block text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4">Últimas Partidas</span>
-
-                        <div className="space-y-3">
-                            {/* Item Partida 1 */}
-                            <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg flex justify-between items-center border border-gray-200 dark:border-gray-600">
-                                <span className="font-medium text-gray-700 dark:text-gray-200">🎮 Valorant - Competitivo</span>
-                                <span className="text-green-600 dark:text-green-400 font-bold bg-green-500/10 px-3 py-1 rounded-full text-sm">Vitória (+25 MMR)</span>
-                            </div>
-
-                            {/* Item Partida 2 */}
-                            <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg flex justify-between items-center border border-gray-200 dark:border-gray-600">
-                                <span className="font-medium text-gray-700 dark:text-gray-200">🎮 League of Legends - Ranked</span>
-                                <span className="text-red-600 dark:text-red-400 font-bold bg-red-500/10 px-3 py-1 rounded-full text-sm">Derrota (-12 MMR)</span>
-                            </div>
+                <div className="stats-grid">
+                    <div className="stat-card">
+                        <div className="stat-icon pontos">
+                            <span>🏆</span>
                         </div>
+                        <div className="stat-info">
+                            <span className="stat-label">Pontos Totais</span>
+                            <span className="stat-value">{stats?.pontos || 0}</span>
+                        </div>
+                    </div>
 
+                    <div className="stat-card">
+                        <div className="stat-icon vitorias">
+                            <span>⚔️</span>
+                        </div>
+                        <div className="stat-info">
+                            <span className="stat-label">Vitórias</span>
+                            <span className="stat-value">{stats?.vitorias || 0}</span>
+                        </div>
+                    </div>
+
+                    <div className="stat-card">
+                        <div className="stat-icon winrate">
+                            <span>📊</span>
+                        </div>
+                        <div className="stat-info">
+                            <span className="stat-label">Taxa de Vitória</span>
+                            <span className="stat-value">{stats?.winRate || 0}%</span>
+                        </div>
+                    </div>
+
+                    <div className="stat-card">
+                        <div className="stat-icon inscricoes">
+                            <span>🎫</span>
+                        </div>
+                        <div className="stat-info">
+                            <span className="stat-label">Torneios Inscrito</span>
+                            <span className="stat-value">{stats?.inscricoes || 0}</span>
+                        </div>
                     </div>
                 </div>
+
+                <section className="recent-section">
+                    <div className="section-header">
+                        <h2>Minhas Inscrições Recentes</h2>
+                        <a href="/tournaments" className="view-all">Ver todos</a>
+                    </div>
+
+                    {recentMatches.length === 0 && stats?.inscricoes === 0 ? (
+                        <div className="empty-state">
+                            <p>Nenhuma inscrição ainda.</p>
+                            <a href="/tournaments" className="btn-primary">Explorar Torneios</a>
+                        </div>
+                    ) : (
+                        <div className="inscriptions-list">
+                            {/* This would show user's inscriptions */}
+                            <p className="empty-state">Suas inscrições aparecerão aqui após participar de torneios.</p>
+                        </div>
+                    )}
+                </section>
+
+                <section className="recent-section">
+                    <div className="section-header">
+                        <h2>Últimas Partidas</h2>
+                    </div>
+                    <div className="empty-state">
+                        <p>Histórico de partidas será exibido aqui.</p>
+                    </div>
+                </section>
             </div>
         </div>
     );
-};
-
-export default Dashboard;
+}
