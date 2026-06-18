@@ -1,0 +1,1219 @@
+import { useState, useMemo } from "react";
+import {
+  Trophy, Users, Zap, Shield, BarChart3, Play, LogIn, LogOut,
+  Plus, ChevronRight, X, CheckCircle, Clock, Lock, Star,
+  TrendingUp, TrendingDown, Minus, Swords, Crown, Medal,
+  ChevronDown, Eye, UserCheck, Gamepad2, Database, LayoutDashboard,
+  List, AlertCircle
+} from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Page = "dashboard" | "torneios" | "ranking" | "equipes" | "partidas";
+
+interface Jogo { id: number; name: string; genre: string; color: string }
+interface Jogador { id: number; name: string; role: string; equipeId: number }
+interface Equipe {
+  id: number; name: string; tag: string; jogoId: number;
+  elo: number; wins: number; losses: number; logoColor: string
+}
+interface Torneio {
+  id: number; name: string; jogoId: number;
+  status: "ativo" | "encerrado" | "pendente";
+  startDate: string; prize: string; slots: number
+}
+interface Inscricao { torneioId: number; equipeId: number }
+interface Partida {
+  id: number; torneioId: number; equipeAId: number; equipeBId: number;
+  scoreA: number; scoreB: number; date: string;
+  eloChangeA: number; eloChangeB: number
+}
+
+// ─── Mock Seed Data ───────────────────────────────────────────────────────────
+const JOGOS: Jogo[] = [
+  { id: 1, name: "League of Legends", genre: "MOBA", color: "#C89B3C" },
+  { id: 2, name: "CS2", genre: "FPS", color: "#FF6B35" },
+  { id: 3, name: "Valorant", genre: "FPS Tático", color: "#FF4655" },
+];
+
+const SEED_EQUIPES: Equipe[] = [
+  { id: 1, name: "LOUD", tag: "LOUD", jogoId: 1, elo: 1842, wins: 22, losses: 6, logoColor: "#22c55e" },
+  { id: 2, name: "paiN Gaming", tag: "paiN", jogoId: 1, elo: 1735, wins: 18, losses: 10, logoColor: "#3b82f6" },
+  { id: 3, name: "RED Canids", tag: "RED", jogoId: 1, elo: 1698, wins: 17, losses: 11, logoColor: "#ef4444" },
+  { id: 4, name: "Fluxo", tag: "FLX", jogoId: 2, elo: 1644, wins: 14, losses: 12, logoColor: "#f59e0b" },
+  { id: 5, name: "FURIA Esports", tag: "FUR", jogoId: 2, elo: 1612, wins: 15, losses: 13, logoColor: "#7c3aed" },
+  { id: 6, name: "Miners", tag: "MIN", jogoId: 3, elo: 1558, wins: 12, losses: 14, logoColor: "#06b6d4" },
+  { id: 7, name: "Keyd Stars", tag: "KYD", jogoId: 1, elo: 1510, wins: 10, losses: 16, logoColor: "#e879f9" },
+  { id: 8, name: "Thunder.gg", tag: "THD", jogoId: 3, elo: 1472, wins: 9, losses: 17, logoColor: "#f97316" },
+  { id: 9, name: "ProGaming BR", tag: "PRO", jogoId: 2, elo: 1435, wins: 8, losses: 18, logoColor: "#84cc16" },
+  { id: 10, name: "NeBuLa", tag: "NBL", jogoId: 3, elo: 1381, wins: 6, losses: 20, logoColor: "#a78bfa" },
+];
+
+const SEED_JOGADORES: Jogador[] = [
+  { id: 1, name: "Robo", role: "Top", equipeId: 1 },
+  { id: 2, name: "Croc", role: "Jungle", equipeId: 1 },
+  { id: 3, name: "tinowns", role: "Mid", equipeId: 1 },
+  { id: 4, name: "Route", role: "ADC", equipeId: 1 },
+  { id: 5, name: "Ceos", role: "Support", equipeId: 1 },
+  { id: 6, name: "Wizer", role: "Top", equipeId: 2 },
+  { id: 7, name: "CarioK", role: "Jungle", equipeId: 2 },
+  { id: 8, name: "Dynatox", role: "Mid", equipeId: 2 },
+  { id: 9, name: "Titan", role: "ADC", equipeId: 2 },
+  { id: 10, name: "Redbert", role: "Support", equipeId: 2 },
+  { id: 11, name: "Guigo", role: "Top", equipeId: 3 },
+  { id: 12, name: "Aegis", role: "Jungle", equipeId: 3 },
+  { id: 13, name: "Grevthar", role: "Mid", equipeId: 3 },
+  { id: 14, name: "Damage", role: "ADC", equipeId: 3 },
+  { id: 15, name: "Kuri", role: "Support", equipeId: 3 },
+  { id: 16, name: "Trigo", role: "Entry", equipeId: 4 },
+  { id: 17, name: "saffee", role: "AWPer", equipeId: 4 },
+  { id: 18, name: "vsm", role: "Rifler", equipeId: 5 },
+  { id: 19, name: "arT", role: "IGL", equipeId: 5 },
+  { id: 20, name: "KSCERATO", role: "Rifler", equipeId: 5 },
+];
+
+const SEED_TORNEIOS: Torneio[] = [
+  { id: 1, name: "CBLOL 2025 — Split 1", jogoId: 1, status: "ativo", startDate: "2025-02-10", prize: "R$ 100.000", slots: 8 },
+  { id: 2, name: "BLAST BR Qualifiers", jogoId: 2, status: "ativo", startDate: "2025-03-01", prize: "US$ 25.000", slots: 8 },
+  { id: 3, name: "Copa Rank It Up — Invitacional", jogoId: 3, status: "encerrado", startDate: "2025-01-15", prize: "R$ 50.000", slots: 6 },
+  { id: 4, name: "Valorant Champions Tour BR", jogoId: 3, status: "pendente", startDate: "2025-04-20", prize: "R$ 75.000", slots: 10 },
+];
+
+const SEED_INSCRICOES: Inscricao[] = [
+  { torneioId: 1, equipeId: 1 }, { torneioId: 1, equipeId: 2 }, { torneioId: 1, equipeId: 3 }, { torneioId: 1, equipeId: 7 },
+  { torneioId: 2, equipeId: 4 }, { torneioId: 2, equipeId: 5 }, { torneioId: 2, equipeId: 9 },
+  { torneioId: 3, equipeId: 6 }, { torneioId: 3, equipeId: 8 }, { torneioId: 3, equipeId: 10 },
+];
+
+const SEED_PARTIDAS: Partida[] = [
+  { id: 1, torneioId: 1, equipeAId: 1, equipeBId: 2, scoreA: 2, scoreB: 0, date: "2025-02-14", eloChangeA: 18, eloChangeB: -18 },
+  { id: 2, torneioId: 1, equipeAId: 3, equipeBId: 7, scoreA: 2, scoreB: 1, date: "2025-02-15", eloChangeA: 14, eloChangeB: -14 },
+  { id: 3, torneioId: 2, equipeAId: 4, equipeBId: 5, scoreA: 16, scoreB: 13, date: "2025-03-03", eloChangeA: 16, eloChangeB: -16 },
+  { id: 4, torneioId: 2, equipeAId: 9, equipeBId: 4, scoreA: 5, scoreB: 16, date: "2025-03-04", eloChangeA: -12, eloChangeB: 12 },
+  { id: 5, torneioId: 3, equipeAId: 6, equipeBId: 8, scoreA: 13, scoreB: 7, date: "2025-01-18", eloChangeA: 20, eloChangeB: -20 },
+  { id: 6, torneioId: 1, equipeAId: 2, equipeBId: 3, scoreA: 2, scoreB: 2, date: "2025-02-20", eloChangeA: 5, eloChangeB: 5 },
+];
+
+// ─── Elo Calculator ───────────────────────────────────────────────────────────
+function calcElo(eloA: number, eloB: number, resultA: "win" | "loss" | "draw"): [number, number] {
+  const K = 32;
+  const expectedA = 1 / (1 + Math.pow(10, (eloB - eloA) / 400));
+  const expectedB = 1 - expectedA;
+  const scoreA = resultA === "win" ? 1 : resultA === "draw" ? 0.5 : 0;
+  const scoreB = 1 - scoreA;
+  const changeA = Math.round(K * (scoreA - expectedA));
+  const changeB = Math.round(K * (scoreB - expectedB));
+  return [changeA, changeB];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const eloTier = (elo: number) => {
+  if (elo >= 1800) return { label: "Grandmaster", color: "#f59e0b", icon: Crown };
+  if (elo >= 1700) return { label: "Master", color: "#a855f7", icon: Star };
+  if (elo >= 1600) return { label: "Diamond", color: "#00d4ff", icon: Medal };
+  if (elo >= 1500) return { label: "Platinum", color: "#22c55e", icon: Shield };
+  if (elo >= 1400) return { label: "Gold", color: "#eab308", icon: Trophy };
+  return { label: "Silver", color: "#9ca3af", icon: Minus };
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string | number; sub?: string; color: string }) {
+  return (
+    <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 p-5 rounded-xl hover:border-[#7c3aed]/35 transition-colors">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a] tracking-wider uppercase">{label}</span>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color + "22" }}>
+          <Icon className="w-4 h-4" style={{ color }} />
+        </div>
+      </div>
+      <div className="font-['Chakra_Petch'] text-3xl font-bold text-white">{value}</div>
+      {sub && <div className="text-xs text-[#6b6b9a] mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function Badge({ status }: { status: Torneio["status"] }) {
+  const map = {
+    ativo: { label: "Ativo", bg: "#22c55e22", text: "#22c55e", dot: true },
+    encerrado: { label: "Encerrado", bg: "#6b7280aa", text: "#9ca3af", dot: false },
+    pendente: { label: "Pendente", bg: "#f59e0b22", text: "#f59e0b", dot: false },
+  };
+  const s = map[status];
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium font-['JetBrains_Mono']" style={{ background: s.bg, color: s.text }}>
+      {s.dot && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+      {s.label}
+    </span>
+  );
+}
+
+function TeamLogo({ equipe, size = "md" }: { equipe: Equipe; size?: "sm" | "md" | "lg" }) {
+  const s = size === "sm" ? "w-7 h-7 text-xs" : size === "lg" ? "w-12 h-12 text-base" : "w-9 h-9 text-sm";
+  return (
+    <div className={`${s} rounded-lg flex items-center justify-center font-['Chakra_Petch'] font-bold shrink-0`}
+      style={{ background: equipe.logoColor + "22", color: equipe.logoColor, border: `1px solid ${equipe.logoColor}44` }}>
+      {equipe.tag.slice(0, 3)}
+    </div>
+  );
+}
+
+// ─── Pages ────────────────────────────────────────────────────────────────────
+
+// Dashboard
+function PageDashboard({ equipes, torneios, partidas, jogos, inscricoes, setPage }:
+  { equipes: Equipe[]; torneios: Torneio[]; partidas: Partida[]; jogos: Jogo[]; inscricoes: Inscricao[]; setPage: (p: Page) => void }) {
+  const top5 = [...equipes].sort((a, b) => b.elo - a.elo).slice(0, 5);
+  const recent = [...partidas].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="font-['Chakra_Petch'] text-3xl font-bold text-white mb-1">Dashboard</h1>
+        <p className="text-sm text-[#6b6b9a]">Visão geral do sistema de torneios</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Trophy} label="Torneios" value={torneios.length} sub={`${torneios.filter(t => t.status === "ativo").length} ativos`} color="#7c3aed" />
+        <StatCard icon={Users} label="Equipes" value={equipes.length} sub="cadastradas" color="#00d4ff" />
+        <StatCard icon={Swords} label="Partidas" value={partidas.length} sub="registradas" color="#f59e0b" />
+        <StatCard icon={UserCheck} label="Inscrições" value={inscricoes.length} sub="confirmadas" color="#22c55e" />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Top Rankings */}
+        <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <span className="font-['Chakra_Petch'] font-bold text-white text-sm tracking-wide">TOP RANKING GLOBAL</span>
+            <button onClick={() => setPage("ranking")} className="text-xs text-[#7c3aed] hover:text-[#00d4ff] transition-colors font-['JetBrains_Mono'] flex items-center gap-1">
+              Ver todos <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div>
+            {top5.map((eq, i) => {
+              const tier = eloTier(eq.elo);
+              const TierIcon = tier.icon;
+              return (
+                <div key={eq.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/3 last:border-0 hover:bg-white/3 transition-colors">
+                  <span className="font-['Chakra_Petch'] text-sm font-bold w-5 text-center" style={{ color: i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : i === 2 ? "#cd7c3a" : "#6b6b9a" }}>
+                    {i + 1}
+                  </span>
+                  <TeamLogo equipe={eq} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{eq.name}</div>
+                    <div className="text-xs text-[#6b6b9a]">{eq.wins}V {eq.losses}D</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TierIcon className="w-3.5 h-3.5" style={{ color: tier.color }} />
+                    <span className="font-['JetBrains_Mono'] text-sm font-bold" style={{ color: tier.color }}>{eq.elo}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Recent Matches */}
+        <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <span className="font-['Chakra_Petch'] font-bold text-white text-sm tracking-wide">PARTIDAS RECENTES</span>
+            <button onClick={() => setPage("partidas")} className="text-xs text-[#7c3aed] hover:text-[#00d4ff] transition-colors font-['JetBrains_Mono'] flex items-center gap-1">
+              Ver todas <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div>
+            {recent.map((p) => {
+              const ea = equipes.find(e => e.id === p.equipeAId)!;
+              const eb = equipes.find(e => e.id === p.equipeBId)!;
+              const t = torneios.find(t => t.id === p.torneioId)!;
+              const draw = p.scoreA === p.scoreB;
+              const aWon = p.scoreA > p.scoreB;
+              return (
+                <div key={p.id} className="px-5 py-3.5 border-b border-white/3 last:border-0 hover:bg-white/3 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a] truncate max-w-[180px]">{t?.name}</span>
+                    <span className="text-[10px] text-[#6b6b9a] font-['JetBrains_Mono']">{p.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium truncate flex-1 text-right ${!draw && aWon ? "text-white" : "text-[#6b6b9a]"}`}>{ea.tag}</span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className={`font-['Chakra_Petch'] font-bold text-lg ${!draw && aWon ? "text-white" : "text-[#6b6b9a]"}`}>{p.scoreA}</span>
+                      <span className="text-[#6b6b9a] text-xs font-['JetBrains_Mono'] px-1">vs</span>
+                      <span className={`font-['Chakra_Petch'] font-bold text-lg ${!draw && !aWon ? "text-white" : "text-[#6b6b9a]"}`}>{p.scoreB}</span>
+                    </div>
+                    <span className={`text-sm font-medium truncate flex-1 ${!draw && !aWon ? "text-white" : "text-[#6b6b9a]"}`}>{eb.tag}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Torneios Ativos */}
+      <div>
+        <h2 className="font-['Chakra_Petch'] font-bold text-white text-sm tracking-wide mb-4">TORNEIOS ATIVOS</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {torneios.filter(t => t.status === "ativo").map(t => {
+            const jogo = jogos.find(j => j.id === t.jogoId)!;
+            const inscs = inscricoes.filter(i => i.torneioId === t.id).length;
+            return (
+              <div key={t.id} className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl p-5 hover:border-[#7c3aed]/40 transition-colors">
+                <div className="flex items-start justify-between mb-3">
+                  <Badge status={t.status} />
+                  <span className="text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a]" style={{ color: jogo.color }}>{jogo.name}</span>
+                </div>
+                <h3 className="font-['Chakra_Petch'] font-bold text-white text-base mb-3">{t.name}</h3>
+                <div className="flex justify-between text-xs text-[#6b6b9a] font-['JetBrains_Mono']">
+                  <span>{inscs}/{t.slots} equipes</span>
+                  <span className="text-[#22c55e]">{t.prize}</span>
+                </div>
+                <div className="mt-3 bg-white/5 rounded-full h-1.5">
+                  <div className="h-full rounded-full bg-[#7c3aed]" style={{ width: `${(inscs / t.slots) * 100}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Torneios
+function PageTorneios({ torneios, jogos, equipes, inscricoes, partidas, isOrg, setTorneios, setInscricoes }:
+  { torneios: Torneio[]; jogos: Jogo[]; equipes: Equipe[]; inscricoes: Inscricao[]; partidas: Partida[];
+    isOrg: boolean; setTorneios: (t: Torneio[]) => void; setInscricoes: (i: Inscricao[]) => void }) {
+  const [selected, setSelected] = useState<Torneio | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: "", jogoId: 1, prize: "", slots: 8 });
+
+  function handleCreate() {
+    const novo: Torneio = {
+      id: Math.max(...torneios.map(t => t.id)) + 1,
+      name: form.name, jogoId: form.jogoId, prize: form.prize,
+      slots: form.slots, status: "pendente",
+      startDate: new Date().toISOString().split("T")[0],
+    };
+    setTorneios([...torneios, novo]);
+    setShowCreate(false);
+    setForm({ name: "", jogoId: 1, prize: "", slots: 8 });
+  }
+
+  function handleInscrever(equipeId: number) {
+    if (!selected) return;
+    if (inscricoes.some(i => i.torneioId === selected.id && i.equipeId === equipeId)) return;
+    setInscricoes([...inscricoes, { torneioId: selected.id, equipeId }]);
+  }
+
+  if (selected) {
+    const jogo = jogos.find(j => j.id === selected.jogoId)!;
+    const inscs = inscricoes.filter(i => i.torneioId === selected.id);
+    const eqsInscritas = inscs.map(i => equipes.find(e => e.id === i.equipeId)!).filter(Boolean);
+    const matchesTorneio = partidas.filter(p => p.torneioId === selected.id);
+    const eqsDisponiveis = equipes.filter(e => e.jogoId === selected.jogoId && !inscs.some(i => i.equipeId === e.id));
+
+    // standings dentro do torneio
+    const standings = eqsInscritas.map(eq => {
+      const ms = matchesTorneio.filter(m => m.equipeAId === eq.id || m.equipeBId === eq.id);
+      const wins = ms.filter(m => (m.equipeAId === eq.id && m.scoreA > m.scoreB) || (m.equipeBId === eq.id && m.scoreB > m.scoreA)).length;
+      const losses = ms.filter(m => (m.equipeAId === eq.id && m.scoreA < m.scoreB) || (m.equipeBId === eq.id && m.scoreB < m.scoreA)).length;
+      const draws = ms.filter(m => m.scoreA === m.scoreB).length;
+      const pts = wins * 3 + draws;
+      return { eq, wins, losses, draws, pts, played: ms.length };
+    }).sort((a, b) => b.pts - a.pts || b.wins - a.wins);
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSelected(null)} className="text-[#7c3aed] hover:text-white transition-colors">
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </button>
+          <div>
+            <h1 className="font-['Chakra_Petch'] text-2xl font-bold text-white">{selected.name}</h1>
+            <div className="flex items-center gap-3 mt-1">
+              <Badge status={selected.status} />
+              <span className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a]" style={{ color: jogo.color }}>{jogo.name}</span>
+              <span className="text-xs font-['JetBrains_Mono'] text-[#22c55e]">{selected.prize}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Standings */}
+          <div className="lg:col-span-2 bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/5">
+              <span className="font-['Chakra_Petch'] font-bold text-white text-sm tracking-wide">CLASSIFICAÇÃO DO TORNEIO</span>
+            </div>
+            {standings.length === 0 ? (
+              <div className="p-8 text-center text-[#6b6b9a] text-sm">Nenhuma partida registrada ainda.</div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    {["#", "Equipe", "J", "V", "D", "E", "PTS"].map(h => (
+                      <th key={h} className="px-4 py-2.5 text-left text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a] tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((s, i) => (
+                    <tr key={s.eq.id} className="border-b border-white/3 last:border-0 hover:bg-white/2 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="font-['Chakra_Petch'] font-bold text-sm" style={{ color: i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : i === 2 ? "#cd7c3a" : "#6b6b9a" }}>{i + 1}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <TeamLogo equipe={s.eq} size="sm" />
+                          <span className="text-sm text-white">{s.eq.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-['JetBrains_Mono'] text-sm text-[#6b6b9a]">{s.played}</td>
+                      <td className="px-4 py-3 font-['JetBrains_Mono'] text-sm text-[#22c55e]">{s.wins}</td>
+                      <td className="px-4 py-3 font-['JetBrains_Mono'] text-sm text-[#ef4444]">{s.losses}</td>
+                      <td className="px-4 py-3 font-['JetBrains_Mono'] text-sm text-[#6b6b9a]">{s.draws}</td>
+                      <td className="px-4 py-3 font-['Chakra_Petch'] font-bold text-sm text-[#7c3aed]">{s.pts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Inscrições */}
+          <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+              <span className="font-['Chakra_Petch'] font-bold text-white text-sm tracking-wide">EQUIPES</span>
+              <span className="font-['JetBrains_Mono'] text-xs text-[#6b6b9a]">{eqsInscritas.length}/{selected.slots}</span>
+            </div>
+            <div className="divide-y divide-white/3">
+              {eqsInscritas.map(eq => (
+                <div key={eq.id} className="flex items-center gap-3 px-5 py-3">
+                  <TeamLogo equipe={eq} size="sm" />
+                  <span className="text-sm text-white flex-1">{eq.name}</span>
+                  <CheckCircle className="w-4 h-4 text-[#22c55e]" />
+                </div>
+              ))}
+            </div>
+            {isOrg && selected.status !== "encerrado" && eqsInscritas.length < selected.slots && eqsDisponiveis.length > 0 && (
+              <div className="p-4 border-t border-white/5">
+                <p className="text-xs text-[#6b6b9a] mb-2 font-['JetBrains_Mono']">Inscrever equipe:</p>
+                <div className="space-y-2">
+                  {eqsDisponiveis.slice(0, 4).map(eq => (
+                    <button key={eq.id} onClick={() => handleInscrever(eq.id)}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-[#7c3aed]/20 hover:border-[#7c3aed]/50 hover:bg-[#7c3aed]/10 transition-all text-sm text-white/70 hover:text-white">
+                      <Plus className="w-3 h-3 text-[#7c3aed]" />
+                      {eq.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Partidas do torneio */}
+        <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/5">
+            <span className="font-['Chakra_Petch'] font-bold text-white text-sm tracking-wide">PARTIDAS DO TORNEIO</span>
+          </div>
+          {matchesTorneio.length === 0 ? (
+            <div className="p-8 text-center text-[#6b6b9a] text-sm">Nenhuma partida registrada neste torneio.</div>
+          ) : (
+            <div className="divide-y divide-white/3">
+              {matchesTorneio.map(p => {
+                const ea = equipes.find(e => e.id === p.equipeAId)!;
+                const eb = equipes.find(e => e.id === p.equipeBId)!;
+                const draw = p.scoreA === p.scoreB;
+                const aWon = p.scoreA > p.scoreB;
+                return (
+                  <div key={p.id} className="flex items-center gap-4 px-5 py-4">
+                    <span className="font-['JetBrains_Mono'] text-xs text-[#6b6b9a] w-20 shrink-0">{p.date}</span>
+                    <div className="flex-1 flex items-center gap-3 justify-center">
+                      <div className="flex items-center gap-2 flex-1 justify-end">
+                        <span className={`text-sm font-medium ${!draw && aWon ? "text-white" : "text-[#6b6b9a]"}`}>{ea.name}</span>
+                        <TeamLogo equipe={ea} size="sm" />
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-['Chakra_Petch'] font-bold text-xl ${!draw && aWon ? "text-white" : "text-[#6b6b9a]"}`}>{p.scoreA}</span>
+                        <span className="text-[#6b6b9a] text-sm">·</span>
+                        <span className={`font-['Chakra_Petch'] font-bold text-xl ${!draw && !aWon ? "text-white" : "text-[#6b6b9a]"}`}>{p.scoreB}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-1 justify-start">
+                        <TeamLogo equipe={eb} size="sm" />
+                        <span className={`text-sm font-medium ${!draw && !aWon ? "text-white" : "text-[#6b6b9a]"}`}>{eb.name}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 shrink-0 font-['JetBrains_Mono'] text-xs w-24 justify-end">
+                      <span style={{ color: p.eloChangeA >= 0 ? "#22c55e" : "#ef4444" }}>{p.eloChangeA >= 0 ? "+" : ""}{p.eloChangeA}</span>
+                      <span style={{ color: p.eloChangeB >= 0 ? "#22c55e" : "#ef4444" }}>{p.eloChangeB >= 0 ? "+" : ""}{p.eloChangeB}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-['Chakra_Petch'] text-3xl font-bold text-white mb-1">Torneios</h1>
+          <p className="text-sm text-[#6b6b9a]">{torneios.length} campeonatos cadastrados</p>
+        </div>
+        {isOrg && (
+          <button onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+            <Plus className="w-4 h-4" /> Criar Torneio
+          </button>
+        )}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {torneios.map(t => {
+          const jogo = jogos.find(j => j.id === t.jogoId)!;
+          const inscs = inscricoes.filter(i => i.torneioId === t.id).length;
+          const matchCount = partidas.filter(p => p.torneioId === t.id).length;
+          return (
+            <button key={t.id} onClick={() => setSelected(t)}
+              className="text-left bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl p-6 hover:border-[#7c3aed]/40 hover:bg-[#0d0d1c]/80 transition-all group">
+              <div className="flex items-start justify-between mb-4">
+                <Badge status={t.status} />
+                <div className="flex items-center gap-1.5">
+                  <Gamepad2 className="w-3.5 h-3.5" style={{ color: jogo.color }} />
+                  <span className="text-xs font-['JetBrains_Mono']" style={{ color: jogo.color }}>{jogo.name}</span>
+                </div>
+              </div>
+              <h3 className="font-['Chakra_Petch'] text-lg font-bold text-white mb-4 group-hover:text-[#c4b5fd] transition-colors">{t.name}</h3>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-white/4 rounded-lg p-2.5">
+                  <div className="font-['Chakra_Petch'] font-bold text-white">{inscs}/{t.slots}</div>
+                  <div className="text-[10px] text-[#6b6b9a] font-['JetBrains_Mono'] mt-0.5">EQUIPES</div>
+                </div>
+                <div className="bg-white/4 rounded-lg p-2.5">
+                  <div className="font-['Chakra_Petch'] font-bold text-[#22c55e]">{t.prize}</div>
+                  <div className="text-[10px] text-[#6b6b9a] font-['JetBrains_Mono'] mt-0.5">PRIZE</div>
+                </div>
+                <div className="bg-white/4 rounded-lg p-2.5">
+                  <div className="font-['Chakra_Petch'] font-bold text-white">{matchCount}</div>
+                  <div className="text-[10px] text-[#6b6b9a] font-['JetBrains_Mono'] mt-0.5">PARTIDAS</div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}>
+          <div className="bg-[#0d0d1c] border border-[#7c3aed]/30 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-['Chakra_Petch'] text-xl font-bold text-white">Criar Torneio</h2>
+              <button onClick={() => setShowCreate(false)} className="text-[#6b6b9a] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">NOME DO TORNEIO</label>
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors"
+                  placeholder="Ex: Copa Nacional 2025" />
+              </div>
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">MODALIDADE</label>
+                <select value={form.jogoId} onChange={e => setForm({ ...form, jogoId: Number(e.target.value) })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors">
+                  {jogos.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">PREMIAÇÃO</label>
+                  <input value={form.prize} onChange={e => setForm({ ...form, prize: e.target.value })}
+                    className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors"
+                    placeholder="R$ 10.000" />
+                </div>
+                <div>
+                  <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">VAGAS</label>
+                  <input type="number" value={form.slots} onChange={e => setForm({ ...form, slots: Number(e.target.value) })}
+                    className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors" />
+                </div>
+              </div>
+              <button onClick={handleCreate} disabled={!form.name}
+                className="w-full py-3 rounded-xl text-sm font-medium text-white mt-2 disabled:opacity-40 transition-all"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+                Criar Torneio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Ranking Global
+function PageRanking({ equipes, jogos }: { equipes: Equipe[]; jogos: Jogo[] }) {
+  const [filterJogo, setFilterJogo] = useState<number | null>(null);
+  const sorted = useMemo(() => {
+    let list = [...equipes].sort((a, b) => b.elo - a.elo);
+    if (filterJogo !== null) list = list.filter(e => e.jogoId === filterJogo);
+    return list;
+  }, [equipes, filterJogo]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-['Chakra_Petch'] text-3xl font-bold text-white mb-1">Ranking Global</h1>
+        <p className="text-sm text-[#6b6b9a]">Classificação por sistema de Rating Elo</p>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setFilterJogo(null)}
+          className={`px-4 py-2 rounded-full text-xs font-['JetBrains_Mono'] tracking-wider transition-all border ${filterJogo === null ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "border-white/10 text-[#6b6b9a] hover:border-white/25"}`}>
+          Todos
+        </button>
+        {jogos.map(j => (
+          <button key={j.id} onClick={() => setFilterJogo(j.id)}
+            className={`px-4 py-2 rounded-full text-xs font-['JetBrains_Mono'] tracking-wider transition-all border ${filterJogo === j.id ? "border-transparent text-white" : "border-white/10 text-[#6b6b9a] hover:border-white/25"}`}
+            style={filterJogo === j.id ? { background: j.color, borderColor: j.color } : {}}>
+            {j.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Leaderboard */}
+      <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/5">
+                {["#", "Equipe", "Jogo", "ELO", "Tier", "Vitórias", "Derrotas", "W/R"].map(h => (
+                  <th key={h} className="px-5 py-4 text-left text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a] tracking-widest whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((eq, i) => {
+                const tier = eloTier(eq.elo);
+                const TierIcon = tier.icon;
+                const jogo = jogos.find(j => j.id === eq.jogoId)!;
+                const wr = eq.wins + eq.losses > 0 ? Math.round((eq.wins / (eq.wins + eq.losses)) * 100) : 0;
+                return (
+                  <tr key={eq.id} className={`border-b border-white/3 last:border-0 hover:bg-white/2 transition-colors ${i < 3 ? "relative" : ""}`}>
+                    <td className="px-5 py-4">
+                      <span className="font-['Chakra_Petch'] font-bold text-lg" style={{ color: i === 0 ? "#f59e0b" : i === 1 ? "#9ca3af" : i === 2 ? "#cd7c3a" : "#6b6b9a" }}>
+                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <TeamLogo equipe={eq} size="md" />
+                        <div>
+                          <div className="text-sm font-medium text-white">{eq.name}</div>
+                          <div className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a]">{eq.tag}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-xs font-['JetBrains_Mono']" style={{ color: jogo.color }}>{jogo.name}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-['Chakra_Petch'] font-bold text-xl" style={{ color: tier.color }}>{eq.elo}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <TierIcon className="w-3.5 h-3.5" style={{ color: tier.color }} />
+                        <span className="text-xs" style={{ color: tier.color }}>{tier.label}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 font-['JetBrains_Mono'] text-sm text-[#22c55e]">{eq.wins}</td>
+                    <td className="px-5 py-4 font-['JetBrains_Mono'] text-sm text-[#ef4444]">{eq.losses}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-white/10 rounded-full h-1.5">
+                          <div className="h-full rounded-full" style={{ width: `${wr}%`, background: wr >= 60 ? "#22c55e" : wr >= 45 ? "#f59e0b" : "#ef4444" }} />
+                        </div>
+                        <span className="font-['JetBrains_Mono'] text-xs text-[#6b6b9a]">{wr}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Tier Legend */}
+      <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl p-5">
+        <p className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-4 tracking-wider">TIERS DO SISTEMA ELO</p>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { label: "Grandmaster", range: "1800+", color: "#f59e0b" },
+            { label: "Master", range: "1700–1799", color: "#a855f7" },
+            { label: "Diamond", range: "1600–1699", color: "#00d4ff" },
+            { label: "Platinum", range: "1500–1599", color: "#22c55e" },
+            { label: "Gold", range: "1400–1499", color: "#eab308" },
+            { label: "Silver", range: "< 1400", color: "#9ca3af" },
+          ].map(t => (
+            <div key={t.label} className="flex items-center gap-2 px-3 py-1.5 rounded-full border" style={{ borderColor: t.color + "40", background: t.color + "10" }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: t.color }} />
+              <span className="text-xs font-['JetBrains_Mono']" style={{ color: t.color }}>{t.label}</span>
+              <span className="text-[10px] text-[#6b6b9a]">{t.range}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Equipes
+function PageEquipes({ equipes, jogadores, jogos, isOrg, setEquipes, setJogadores }:
+  { equipes: Equipe[]; jogadores: Jogador[]; jogos: Jogo[]; isOrg: boolean;
+    setEquipes: (e: Equipe[]) => void; setJogadores: (j: Jogador[]) => void }) {
+  const [selected, setSelected] = useState<Equipe | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ name: "", tag: "", jogoId: 1 });
+
+  function handleAdd() {
+    const nova: Equipe = {
+      id: Math.max(...equipes.map(e => e.id)) + 1,
+      name: form.name, tag: form.tag.toUpperCase(), jogoId: form.jogoId,
+      elo: 1500, wins: 0, losses: 0,
+      logoColor: ["#7c3aed", "#00d4ff", "#22c55e", "#f59e0b", "#ef4444"][Math.floor(Math.random() * 5)],
+    };
+    setEquipes([...equipes, nova]);
+    setShowAdd(false);
+    setForm({ name: "", tag: "", jogoId: 1 });
+  }
+
+  const team = selected ? jogadores.filter(j => j.equipeId === selected.id) : [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-['Chakra_Petch'] text-3xl font-bold text-white mb-1">Equipes</h1>
+          <p className="text-sm text-[#6b6b9a]">{equipes.length} equipes cadastradas</p>
+        </div>
+        {isOrg && (
+          <button onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+            <Plus className="w-4 h-4" /> Nova Equipe
+          </button>
+        )}
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {equipes.map(eq => {
+          const tier = eloTier(eq.elo);
+          const TierIcon = tier.icon;
+          const jogo = jogos.find(j => j.id === eq.jogoId)!;
+          const players = jogadores.filter(j => j.equipeId === eq.id);
+          const wr = eq.wins + eq.losses > 0 ? Math.round((eq.wins / (eq.wins + eq.losses)) * 100) : 0;
+          return (
+            <button key={eq.id} onClick={() => setSelected(eq)}
+              className="text-left bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl p-5 hover:border-[#7c3aed]/40 transition-all group">
+              <div className="flex items-start justify-between mb-4">
+                <TeamLogo equipe={eq} size="lg" />
+                <TierIcon className="w-4 h-4" style={{ color: tier.color }} />
+              </div>
+              <h3 className="font-['Chakra_Petch'] font-bold text-white text-base group-hover:text-[#c4b5fd] transition-colors">{eq.name}</h3>
+              <p className="text-xs font-['JetBrains_Mono'] mb-3" style={{ color: jogo.color }}>{jogo.name}</p>
+              <div className="flex items-center justify-between">
+                <span className="font-['Chakra_Petch'] font-bold text-xl" style={{ color: tier.color }}>{eq.elo}</span>
+                <span className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a]">{eq.wins}V · {eq.losses}D</span>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1 bg-white/8 rounded-full h-1">
+                  <div className="h-full rounded-full" style={{ width: `${wr}%`, background: eq.logoColor }} />
+                </div>
+                <span className="text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a]">{players.length}p</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Team detail modal */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>
+          <div className="bg-[#0d0d1c] border border-[#7c3aed]/30 rounded-2xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <TeamLogo equipe={selected} size="lg" />
+                <div>
+                  <h2 className="font-['Chakra_Petch'] text-xl font-bold text-white">{selected.name}</h2>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {(() => { const j = jogos.find(j => j.id === selected.jogoId)!; return <span className="text-xs font-['JetBrains_Mono']" style={{ color: j.color }}>{j.name}</span>; })()}
+                    {(() => { const tier = eloTier(selected.elo); return <span className="text-xs font-['JetBrains_Mono']" style={{ color: tier.color }}>{tier.label} · {selected.elo}</span>; })()}
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-[#6b6b9a] hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-white/5 border-b border-white/5">
+              {[{ l: "VITÓRIAS", v: selected.wins, c: "#22c55e" }, { l: "DERROTAS", v: selected.losses, c: "#ef4444" }, { l: "WINRATE", v: `${selected.wins + selected.losses > 0 ? Math.round((selected.wins / (selected.wins + selected.losses)) * 100) : 0}%`, c: "#7c3aed" }].map(s => (
+                <div key={s.l} className="text-center p-4">
+                  <div className="font-['Chakra_Petch'] text-2xl font-bold" style={{ color: s.c }}>{s.v}</div>
+                  <div className="text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a] mt-0.5">{s.l}</div>
+                </div>
+              ))}
+            </div>
+            <div className="p-5">
+              <p className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a] tracking-wider mb-3">ELENCO ({team.length} ATLETAS)</p>
+              {team.length === 0 ? (
+                <p className="text-sm text-[#6b6b9a] text-center py-4">Nenhum jogador cadastrado.</p>
+              ) : (
+                <div className="space-y-2">
+                  {team.map(p => (
+                    <div key={p.id} className="flex items-center justify-between px-4 py-2.5 bg-white/4 rounded-xl">
+                      <span className="text-sm text-white font-medium">{p.name}</span>
+                      <span className="text-xs font-['JetBrains_Mono'] text-[#7c3aed] px-2.5 py-1 rounded-full border border-[#7c3aed]/25">{p.role}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add modal */}
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}>
+          <div className="bg-[#0d0d1c] border border-[#7c3aed]/30 rounded-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-['Chakra_Petch'] text-xl font-bold text-white">Nova Equipe</h2>
+              <button onClick={() => setShowAdd(false)} className="text-[#6b6b9a] hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">NOME</label>
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors"
+                  placeholder="Nome da Equipe" />
+              </div>
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">TAG (3-4 letras)</label>
+                <input value={form.tag} onChange={e => setForm({ ...form, tag: e.target.value.slice(0, 4) })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors uppercase"
+                  placeholder="TAG" maxLength={4} />
+              </div>
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">MODALIDADE</label>
+                <select value={form.jogoId} onChange={e => setForm({ ...form, jogoId: Number(e.target.value) })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none">
+                  {jogos.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                </select>
+              </div>
+              <button onClick={handleAdd} disabled={!form.name || !form.tag}
+                className="w-full py-3 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition-all"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+                Criar Equipe (ELO inicial: 1500)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Partidas
+function PagePartidas({ partidas, equipes, torneios, isOrg, setPartidas, setEquipes }:
+  { partidas: Partida[]; equipes: Equipe[]; torneios: Torneio[]; isOrg: boolean;
+    setPartidas: (p: Partida[]) => void; setEquipes: (e: Equipe[]) => void }) {
+  const [showReg, setShowReg] = useState(false);
+  const [form, setForm] = useState({ torneioId: 1, equipeAId: 0, equipeBId: 0, scoreA: "", scoreB: "" });
+  const [preview, setPreview] = useState<[number, number] | null>(null);
+  const [filterTorneio, setFilterTorneio] = useState<number | null>(null);
+
+  const eqA = equipes.find(e => e.id === form.equipeAId);
+  const eqB = equipes.find(e => e.id === form.equipeBId);
+
+  function updatePreview() {
+    const sA = Number(form.scoreA), sB = Number(form.scoreB);
+    if (!eqA || !eqB || isNaN(sA) || isNaN(sB) || (sA === 0 && sB === 0)) { setPreview(null); return; }
+    const result = sA > sB ? "win" : sA < sB ? "loss" : "draw";
+    setPreview(calcElo(eqA.elo, eqB.elo, result));
+  }
+
+  function handleRegister() {
+    const sA = Number(form.scoreA), sB = Number(form.scoreB);
+    if (!eqA || !eqB) return;
+    const result = sA > sB ? "win" : sA < sB ? "loss" : "draw";
+    const [chA, chB] = calcElo(eqA.elo, eqB.elo, result);
+
+    const nova: Partida = {
+      id: Math.max(...partidas.map(p => p.id)) + 1,
+      torneioId: form.torneioId, equipeAId: form.equipeAId, equipeBId: form.equipeBId,
+      scoreA: sA, scoreB: sB, date: new Date().toISOString().split("T")[0],
+      eloChangeA: chA, eloChangeB: chB,
+    };
+
+    const updatedEquipes = equipes.map(eq => {
+      if (eq.id === eqA.id) {
+        const won = sA > sB, drew = sA === sB;
+        return { ...eq, elo: eq.elo + chA, wins: won ? eq.wins + 1 : eq.wins, losses: !won && !drew ? eq.losses + 1 : eq.losses };
+      }
+      if (eq.id === eqB.id) {
+        const won = sB > sA, drew = sA === sB;
+        return { ...eq, elo: eq.elo + chB, wins: won ? eq.wins + 1 : eq.wins, losses: !won && !drew ? eq.losses + 1 : eq.losses };
+      }
+      return eq;
+    });
+
+    setPartidas([...partidas, nova]);
+    setEquipes(updatedEquipes);
+    setShowReg(false);
+    setForm({ torneioId: 1, equipeAId: 0, equipeBId: 0, scoreA: "", scoreB: "" });
+    setPreview(null);
+  }
+
+  const filtered = filterTorneio ? partidas.filter(p => p.torneioId === filterTorneio) : partidas;
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+  const torneioAtivo = torneios.filter(t => t.status !== "encerrado");
+  const eqsDisponiveis = equipes.filter(e => e.jogoId === (torneios.find(t => t.id === form.torneioId)?.jogoId ?? 0));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-['Chakra_Petch'] text-3xl font-bold text-white mb-1">Partidas</h1>
+          <p className="text-sm text-[#6b6b9a]">{partidas.length} confrontos registrados</p>
+        </div>
+        {isOrg && (
+          <button onClick={() => setShowReg(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+            <Plus className="w-4 h-4" /> Registrar Partida
+          </button>
+        )}
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setFilterTorneio(null)}
+          className={`px-3 py-1.5 rounded-full text-xs font-['JetBrains_Mono'] transition-all border ${!filterTorneio ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "border-white/10 text-[#6b6b9a] hover:border-white/25"}`}>
+          Todos
+        </button>
+        {torneios.map(t => (
+          <button key={t.id} onClick={() => setFilterTorneio(t.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-['JetBrains_Mono'] transition-all border truncate max-w-[200px] ${filterTorneio === t.id ? "bg-[#7c3aed] border-[#7c3aed] text-white" : "border-white/10 text-[#6b6b9a] hover:border-white/25"}`}>
+            {t.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Match list */}
+      <div className="bg-[#0d0d1c] border border-[#7c3aed]/15 rounded-xl overflow-hidden">
+        {sorted.length === 0 ? (
+          <div className="p-12 text-center">
+            <Swords className="w-8 h-8 text-[#6b6b9a] mx-auto mb-3 opacity-40" />
+            <p className="text-sm text-[#6b6b9a]">Nenhuma partida encontrada.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/3">
+            {sorted.map(p => {
+              const ea = equipes.find(e => e.id === p.equipeAId)!;
+              const eb = equipes.find(e => e.id === p.equipeBId)!;
+              const t = torneios.find(t => t.id === p.torneioId)!;
+              const draw = p.scoreA === p.scoreB;
+              const aWon = p.scoreA > p.scoreB;
+              return (
+                <div key={p.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/2 transition-colors">
+                  <div className="hidden md:block w-24 shrink-0">
+                    <div className="font-['JetBrains_Mono'] text-xs text-[#6b6b9a]">{p.date}</div>
+                    <div className="font-['JetBrains_Mono'] text-[10px] text-[#6b6b9a]/60 truncate">{t?.name}</div>
+                  </div>
+                  <div className="flex-1 flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1 justify-end">
+                      <div className="text-right hidden sm:block">
+                        <div className={`text-sm font-medium ${!draw && aWon ? "text-white" : "text-[#6b6b9a]"}`}>{ea?.name}</div>
+                        <div className="font-['JetBrains_Mono'] text-[10px]" style={{ color: p.eloChangeA >= 0 ? "#22c55e" : "#ef4444" }}>
+                          {p.eloChangeA >= 0 ? "+" : ""}{p.eloChangeA} ELO
+                        </div>
+                      </div>
+                      <TeamLogo equipe={ea} size="sm" />
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 bg-white/5 rounded-xl px-4 py-2">
+                      <span className={`font-['Chakra_Petch'] font-bold text-2xl ${!draw && aWon ? "text-white" : "text-[#6b6b9a]"}`}>{p.scoreA}</span>
+                      <span className="text-[#6b6b9a] text-sm font-['JetBrains_Mono']">vs</span>
+                      <span className={`font-['Chakra_Petch'] font-bold text-2xl ${!draw && !aWon ? "text-white" : "text-[#6b6b9a]"}`}>{p.scoreB}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 justify-start">
+                      <TeamLogo equipe={eb} size="sm" />
+                      <div className="hidden sm:block">
+                        <div className={`text-sm font-medium ${!draw && !aWon ? "text-white" : "text-[#6b6b9a]"}`}>{eb?.name}</div>
+                        <div className="font-['JetBrains_Mono'] text-[10px]" style={{ color: p.eloChangeB >= 0 ? "#22c55e" : "#ef4444" }}>
+                          {p.eloChangeB >= 0 ? "+" : ""}{p.eloChangeB} ELO
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {draw && <span className="shrink-0 text-xs font-['JetBrains_Mono'] text-[#f59e0b] border border-[#f59e0b]/30 px-2 py-0.5 rounded-full">EMPATE</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Register modal */}
+      {showReg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>
+          <div className="bg-[#0d0d1c] border border-[#7c3aed]/30 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-['Chakra_Petch'] text-xl font-bold text-white">Registrar Partida</h2>
+              <button onClick={() => setShowReg(false)} className="text-[#6b6b9a] hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">TORNEIO</label>
+                <select value={form.torneioId} onChange={e => setForm({ ...form, torneioId: Number(e.target.value), equipeAId: 0, equipeBId: 0 })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none">
+                  {torneioAtivo.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">EQUIPE A</label>
+                  <select value={form.equipeAId} onChange={e => { setForm({ ...form, equipeAId: Number(e.target.value) }); }}
+                    className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:border-[#7c3aed] outline-none">
+                    <option value={0}>Selecionar...</option>
+                    {eqsDisponiveis.filter(e => e.id !== form.equipeBId).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">EQUIPE B</label>
+                  <select value={form.equipeBId} onChange={e => setForm({ ...form, equipeBId: Number(e.target.value) })}
+                    className="w-full bg-[#07070f] border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:border-[#7c3aed] outline-none">
+                    <option value={0}>Selecionar...</option>
+                    {eqsDisponiveis.filter(e => e.id !== form.equipeAId).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {eqA && eqB && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">SCORE {eqA.tag}</label>
+                    <input type="number" min="0" value={form.scoreA} onChange={e => { setForm({ ...form, scoreA: e.target.value }); }}
+                      onBlur={updatePreview}
+                      className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none text-center font-['Chakra_Petch'] text-xl" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">SCORE {eqB.tag}</label>
+                    <input type="number" min="0" value={form.scoreB} onChange={e => { setForm({ ...form, scoreB: e.target.value }); }}
+                      onBlur={updatePreview}
+                      className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none text-center font-['Chakra_Petch'] text-xl" />
+                  </div>
+                </div>
+              )}
+
+              {/* ELO Preview */}
+              {preview && eqA && eqB && (
+                <div className="bg-[#07070f] rounded-xl border border-[#7c3aed]/20 p-4">
+                  <p className="text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-3 tracking-wider">PREVISÃO DE ELO</p>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    {[{ eq: eqA, ch: preview[0] }, { eq: eqB, ch: preview[1] }].map(({ eq, ch }) => (
+                      <div key={eq.id}>
+                        <div className="text-xs text-[#6b6b9a] mb-1">{eq.tag}</div>
+                        <div className="font-['Chakra_Petch'] font-bold text-lg text-white">{eq.elo} → {eq.elo + ch}</div>
+                        <div className="font-['JetBrains_Mono'] text-sm font-bold" style={{ color: ch >= 0 ? "#22c55e" : "#ef4444" }}>
+                          {ch >= 0 ? "+" : ""}{ch}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button onClick={handleRegister} disabled={!eqA || !eqB || !form.scoreA || !form.scoreB || form.equipeAId === form.equipeBId}
+                className="w-full py-3 rounded-xl text-sm font-medium text-white disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+                <CheckCircle className="w-4 h-4" /> Confirmar e Atualizar ELO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [page, setPage] = useState<Page>("dashboard");
+  const [isOrg, setIsOrg] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginError, setLoginError] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [equipes, setEquipes] = useState<Equipe[]>(SEED_EQUIPES);
+  const [jogadores] = useState<Jogador[]>(SEED_JOGADORES);
+  const [torneios, setTorneios] = useState<Torneio[]>(SEED_TORNEIOS);
+  const [inscricoes, setInscricoes] = useState<Inscricao[]>(SEED_INSCRICOES);
+  const [partidas, setPartidas] = useState<Partida[]>(SEED_PARTIDAS);
+
+  function handleLogin() {
+    if (loginForm.email === "org@rankitup.gg" && loginForm.password === "torneio123") {
+      setIsOrg(true); setShowLogin(false); setLoginError("");
+    } else setLoginError("Credenciais inválidas.");
+  }
+
+  const nav = [
+    { id: "dashboard" as Page, label: "Dashboard", icon: LayoutDashboard },
+    { id: "torneios" as Page, label: "Torneios", icon: Trophy },
+    { id: "ranking" as Page, label: "Ranking", icon: BarChart3 },
+    { id: "equipes" as Page, label: "Equipes", icon: Users },
+    { id: "partidas" as Page, label: "Partidas", icon: Swords },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#07070f] font-['DM_Sans'] flex">
+      {/* Grid BG */}
+      <div className="pointer-events-none fixed inset-0 opacity-[0.04]"
+        style={{ backgroundImage: "linear-gradient(rgba(124,58,237,1) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,1) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+
+      {/* Mobile overlay */}
+      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Sidebar */}
+      <aside className={`fixed top-0 left-0 bottom-0 z-40 w-64 flex flex-col bg-[#0a0a18] border-r border-[#7c3aed]/12 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+        {/* Logo */}
+        <div className="px-6 py-5 border-b border-[#7c3aed]/10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+              <Trophy className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="font-['Chakra_Petch'] font-bold text-white text-base leading-none">RANK IT UP</div>
+              <div className="font-['JetBrains_Mono'] text-[9px] text-[#6b6b9a] tracking-wider mt-0.5">e-SPORTS MANAGER</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {nav.map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => { setPage(id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${page === id ? "bg-[#7c3aed]/15 text-white border border-[#7c3aed]/30" : "text-[#6b6b9a] hover:text-white hover:bg-white/4"}`}>
+              <Icon className={`w-4 h-4 shrink-0 ${page === id ? "text-[#7c3aed]" : ""}`} />
+              {label}
+              {page === id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#7c3aed]" />}
+            </button>
+          ))}
+        </nav>
+
+        {/* Auth & Info */}
+        <div className="px-3 py-4 border-t border-[#7c3aed]/10 space-y-2">
+          {isOrg ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-xl">
+                <Shield className="w-4 h-4 text-[#22c55e]" />
+                <div>
+                  <div className="text-xs text-[#22c55e] font-medium">Organizador</div>
+                  <div className="text-[10px] text-[#6b6b9a] font-['JetBrains_Mono']">org@rankitup.gg</div>
+                </div>
+              </div>
+              <button onClick={() => setIsOrg(false)} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-[#6b6b9a] hover:text-white hover:bg-white/4 transition-all">
+                <LogOut className="w-4 h-4" /> Sair
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowLogin(true)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border border-[#7c3aed]/25 text-[#7c3aed] hover:bg-[#7c3aed]/10 transition-all">
+              <LogIn className="w-4 h-4" /> Entrar como Organizador
+            </button>
+          )}
+          <div className="px-3 py-2">
+            <div className="text-[10px] font-['JetBrains_Mono'] text-[#6b6b9a]/50 leading-5">
+              <div>Demo: org@rankitup.gg</div>
+              <div>Senha: torneio123</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        {/* Topbar */}
+        <header className="sticky top-0 z-20 flex items-center justify-between px-5 py-3.5 border-b border-[#7c3aed]/10 bg-[#07070f]/80 backdrop-blur-sm">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#6b6b9a] hover:text-white transition-colors">
+            <List className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+            <span className="font-['JetBrains_Mono'] text-xs text-[#6b6b9a]">Sistema Online</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {isOrg && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#22c55e]/10 border border-[#22c55e]/20 rounded-full">
+                <Lock className="w-3 h-3 text-[#22c55e]" />
+                <span className="text-xs font-['JetBrains_Mono'] text-[#22c55e]">Acesso Org</span>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-5 md:p-8 overflow-y-auto relative z-10">
+          {page === "dashboard" && <PageDashboard equipes={equipes} torneios={torneios} partidas={partidas} jogos={JOGOS} inscricoes={inscricoes} setPage={setPage} />}
+          {page === "torneios" && <PageTorneios torneios={torneios} jogos={JOGOS} equipes={equipes} inscricoes={inscricoes} partidas={partidas} isOrg={isOrg} setTorneios={setTorneios} setInscricoes={setInscricoes} />}
+          {page === "ranking" && <PageRanking equipes={equipes} jogos={JOGOS} />}
+          {page === "equipes" && <PageEquipes equipes={equipes} jogadores={jogadores} jogos={JOGOS} isOrg={isOrg} setEquipes={setEquipes} setJogadores={() => {}} />}
+          {page === "partidas" && <PagePartidas partidas={partidas} equipes={equipes} torneios={torneios} isOrg={isOrg} setPartidas={setPartidas} setEquipes={setEquipes} />}
+        </main>
+      </div>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.9)", backdropFilter: "blur(12px)" }}>
+          <div className="bg-[#0d0d1c] border border-[#7c3aed]/30 rounded-2xl p-8 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-['Chakra_Petch'] text-xl font-bold text-white">Acesso Organizador</h2>
+                <p className="text-xs text-[#6b6b9a] mt-1">Apenas organizadores podem gerenciar torneios</p>
+              </div>
+              <button onClick={() => setShowLogin(false)} className="text-[#6b6b9a] hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">E-MAIL</label>
+                <input value={loginForm.email} onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors"
+                  placeholder="org@rankitup.gg" type="email" />
+              </div>
+              <div>
+                <label className="block text-xs font-['JetBrains_Mono'] text-[#6b6b9a] mb-1.5 tracking-wider">SENHA</label>
+                <input value={loginForm.password} onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()}
+                  className="w-full bg-[#07070f] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-[#7c3aed] outline-none transition-colors"
+                  placeholder="••••••••" type="password" />
+              </div>
+              {loginError && (
+                <div className="flex items-center gap-2 text-xs text-[#ef4444] font-['JetBrains_Mono']">
+                  <AlertCircle className="w-3.5 h-3.5" /> {loginError}
+                </div>
+              )}
+              <button onClick={handleLogin}
+                className="w-full py-3 rounded-xl text-sm font-medium text-white flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}>
+                <Shield className="w-4 h-4" /> Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
