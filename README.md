@@ -1,448 +1,206 @@
-# Rank It Up! — Documentação da API
+# Rank It Up! — Plataforma de Torneios de Esports
 
-Base URL: `http://localhost:8080`
+Sistema completo para criação e gerenciamento de torneios competitivos com ranking ELO, inscrições, partidas e administração.
 
-> **Versão:** 2.0 — atualizada após correções P1, P2 e P3
+## Stack Tecnológica
 
----
+**Backend:**
+- Java 21 + Spring Boot 3.4.x
+- Spring Security 6 + JWT
+- Spring Data JPA + Hibernate
+- MySQL 8 (Docker)
+- Maven
 
-## Autenticação
+**Frontend:**
+- React 19 + Vite 5
+- React Router 6
+- Tailwind CSS (via CSS variables)
+- Context API para estado global
 
-A API usa **JWT (Bearer Token)**. Após o login, inclua o token em todas as requisições protegidas:
-
-```
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9...
-```
-
-**Rotas públicas** (sem token): `POST /api/usuarios/cadastro`, `POST /api/usuarios/login`, `GET /api/torneios`, `GET /api/inscricoes`, `GET /api/jogos`, `GET /api/equipes`.
-
----
-
-## Formato de erro padrão
-
-Todos os erros retornam neste formato:
-
-```json
-{
-  "timestamp": "2026-06-05T16:00:00.123",
-  "status": 404,
-  "erro": "Usuário não encontrado."
-}
-```
+**Infraestrutura:**
+- Docker + Docker Compose
+- Nginx (frontend production)
 
 ---
 
-## Usuários
+## Estrutura do Projeto
 
-### Cadastrar usuário
-`POST /api/usuarios/cadastro` — **público**
-
-**Body:**
-```json
-{
-  "email": "jogador@email.com",
-  "senha": "123456",
-  "perfil": "ROLE_USER",
-  "nome": "João Silva",
-  "nickname": "joaosilva"
-}
 ```
-
-> Para admin omita `nome` e `nickname` e use `"perfil": "ROLE_ADMIN"`.
-
-| Status | Descrição |
-|--------|-----------|
-| 201 | Usuário criado |
-| 409 | E-mail já cadastrado |
-
----
-
-### Login
-`POST /api/usuarios/login` — **público**
-
-**Body:**
-```json
-{
-  "email": "jogador@email.com",
-  "senha": "123456"
-}
-```
-
-**Resposta 200:** token JWT como string
-```
-eyJhbGciOiJIUzM4NCJ9...
-```
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | Retorna token JWT |
-| 401 | E-mail ou senha incorretos |
-
----
-
-### Listar todos os usuários
-`GET /api/usuarios` — **admin**
-
-**Resposta 200:**
-```json
-[
-  {
-    "idUsuario": 1,
-    "email": "jogador@email.com",
-    "perfil": "ROLE_USER",
-    "nome": "João Silva",
-    "nickname": "joaosilva",
-    "fotoPerfil": null,
-    "equipe": { "idEquipe": 1, "nomeEquipe": "Team Alpha", "tagEquipe": "ALPH", "paisOrigem": "Brasil" }
-  }
-]
+ProjetoSemestralBRAOOB/
+├── backend/                 # Spring Boot API
+│   ├── src/main/java/com/rankitup/backend/
+│   │   ├── controller/      # REST controllers
+│   │   ├── service/         # Business logic
+│   │   ├── repository/      # JPA repositories
+│   │   ├── model/           # Entities & enums
+│   │   ├── dto/             # Data transfer objects
+│   │   ├── security/        # JWT, filters, config
+│   │   ├── config/          # Security, CORS
+│   │   └── exception/       # Global exception handler
+│   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   └── db/migration/    # Flyway (se usar)
+│   ├── pom.xml
+│   └── Dockerfile
+├── frontend/                # React + Vite
+│   ├── src/
+│   │   ├── pages/           # Page components
+│   │   ├── components/      # Reusable components
+│   │   ├── context/         # React Context (Auth)
+│   │   ├── services/        # API client
+│   │   ├── styles/          # Global CSS variables
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── nginx.conf
+│   └── Dockerfile
+├── docker-compose.yml
+└── seed.sql                 # Dados iniciais (10 jogos, 6 torneios, usuários teste)
 ```
 
 ---
 
-### Buscar usuário por ID
-`GET /api/usuarios/{id}` — **autenticado**
+## Como Rodar
 
-| Status | Descrição |
-|--------|-----------|
-| 200 | Usuário encontrado |
-| 404 | Usuário não encontrado |
+### Pré-requisitos
+- Docker Desktop rodando
+- Java 21 (opcional, para dev local sem Docker)
+- Node 20+ (opcional, para dev local sem Docker)
 
----
+### Opção 1: Docker Compose (Recomendado)
 
-### Atualizar usuário
-`PUT /api/usuarios/{id}` — **admin ou o próprio usuário**
-
-**Body** (todos os campos são opcionais):
-```json
-{
-  "nome": "João Atualizado",
-  "nickname": "joao_novo",
-  "fotoPerfil": "https://url-da-foto.com/foto.jpg",
-  "senha": "novasenha123"
-}
+```bash
+cd ProjetoSemestralBRAOOB
+docker-compose up -d
 ```
 
-| Status | Descrição |
-|--------|-----------|
-| 200 | Usuário atualizado |
-| 403 | Sem permissão para atualizar este usuário |
-| 404 | Usuário não encontrado |
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8080
+- MySQL: localhost:3306 (user: root, pass: 3132, db: rankitup_db)
 
----
+> **Nota:** O seed.sql roda automaticamente na primeira inicialização do container MySQL.
 
-### Excluir usuário
-`DELETE /api/usuarios/{id}` — **admin**
+### Opção 2: Desenvolvimento Local
 
-| Status | Descrição |
-|--------|-----------|
-| 200 | `"Usuário excluído com sucesso."` |
-| 404 | Usuário não encontrado |
+**Backend:**
+```bash
+cd backend
+./mvnw spring-boot:run
+```
 
----
-
-## Equipes
-
-### Listar todas as equipes
-`GET /api/equipes` — **público**
-
-**Resposta 200:**
-```json
-[
-  {
-    "idEquipe": 1,
-    "nomeEquipe": "Team Alpha",
-    "tagEquipe": "ALPH",
-    "paisOrigem": "Brasil"
-  }
-]
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ---
 
-### Cadastrar equipe
-`POST /api/equipes` — **autenticado**
+## Credenciais de Teste (do seed.sql)
 
-**Body:**
-```json
-{
-  "nomeEquipe": "Team Alpha",
-  "tagEquipe": "ALPH",
-  "paisOrigem": "Brasil"
-}
-```
-
-> `tagEquipe` deve ser única no sistema (máx. 10 caracteres).
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | Equipe criada |
-| 500 | Tag já em uso |
+| Role | Email | Senha |
+|------|-------|-------|
+| Admin | admin@rankitup.com | 123456 |
+| Admin | admin2@rankitup.com | 123456 |
+| User | joao@email.com | 123456 |
+| User | maria@email.com | 123456 |
+| User | pedro@email.com | 123456 |
+| User | ana@email.com | 123456 |
+| User | lucas@email.com | 123456 |
+| User | julia@email.com | 123456 |
+| User | rafael@email.com | 123456 |
+| User | camila@email.com | 123456 |
+| User | bruno@email.com | 123456 |
 
 ---
 
-## Jogos
+## Principais Endpoints (API)
 
-### Listar todos os jogos
-`GET /api/jogos` — **público**
+### Autenticação
+- `POST /api/usuarios/cadastro` — Registro público
+- `POST /api/usuarios/login` — Login (retorna JWT)
 
-**Resposta 200:**
-```json
-[
-  {
-    "idJogo": 1,
-    "titulo": "Counter-Strike 2",
-    "genero": "FPS",
-    "desenvolvedora": "Valve"
-  }
-]
-```
+### Usuários (requer token)
+- `GET /api/usuarios` — Listar todos (ADMIN)
+- `GET /api/usuarios/{id}` — Buscar por ID
+- `PUT /api/usuarios/{id}` — Atualizar (próprio ou ADMIN)
+- `DELETE /api/usuarios/{id}` — Excluir (ADMIN)
+
+### Jogos
+- `GET /api/jogos` — Listar todos (público)
+- `POST /api/jogos` — Criar (ADMIN)
+
+### Torneios
+- `GET /api/torneios` — Listar todos (público)
+- `GET /api/torneios/{id}` — Detalhes
+- `POST /api/torneios` — Criar (ADMIN)
+
+### Inscrições
+- `GET /api/inscricoes` — Listar (público)
+- `POST /api/inscricoes` — Inscrever (ADMIN - fluxo simplificado)
+
+### Equipes
+- `GET /api/equipes` — Listar (público)
+- `POST /api/equipes` — Criar
+
+### Partidas (ADMIN)
+- `GET /api/partidas` — Listar
+- `POST /api/partidas` — Criar
+- `POST /api/partidas/{id}/resultado` — Atualizar resultado
+- `PUT /api/partidas/{id}` — Atualizar fase
 
 ---
 
-### Cadastrar jogo
-`POST /api/jogos` — **autenticado**
+## Variáveis de Ambiente
 
-**Body:**
-```json
-{
-  "titulo": "Counter-Strike 2",
-  "genero": "FPS",
-  "desenvolvedora": "Valve"
-}
+### Backend (`application.properties` / Docker env)
+```properties
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/rankitup_db
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=3132
+JWT_SECRET=rankitup-chave-secreta-super-longa-para-hmac-sha256-2026
+JWT_EXPIRATION=86400000
 ```
 
-| Status | Descrição |
-|--------|-----------|
-| 200 | Jogo criado |
-
----
-
-## Torneios
-
-### Listar todos os torneios
-`GET /api/torneios` — **público**
-
-**Resposta 200:**
-```json
-[
-  {
-    "idTorneio": 1,
-    "nome": "Torneio Verão",
-    "premiacaoTotal": 1000.00,
-    "dataCriacao": "2026-06-05T10:00:00",
-    "jogo": { "idJogo": 1, "titulo": "Counter-Strike 2", "genero": "FPS", "desenvolvedora": "Valve" },
-    "criador": { "idUsuario": 2, "email": "admin@email.com", "perfil": "ROLE_ADMIN" }
-  }
-]
+### Frontend (`vite.config.ts` / Docker env)
+```env
+VITE_API_URL=http://localhost:8080
 ```
 
 ---
 
-### Criar torneio
-`POST /api/torneios` — **admin**
+## Funcionalidades Implementadas
 
-> O campo `criador` é preenchido automaticamente com o admin do token — não envie.
-
-**Body:**
-```json
-{
-  "nome": "Torneio Verão",
-  "premiacaoTotal": 1000.00,
-  "jogo": { "idJogo": 1 }
-}
-```
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | Torneio criado com criador vinculado automaticamente |
-| 403 | Token não é de admin |
+- ✅ Autenticação JWT com roles (ADMIN, USER)
+- ✅ Cadastro/Login com validação
+- ✅ CRUD de Jogos (com imagens/banners reais Steam/CDN)
+- ✅ CRUD de Torneios (5 formatos: eliminação simples/dupla, suíço, liga, grupos+eliminação)
+- ✅ Inscrições em torneios
+- ✅ Sistema de Equipes
+- ✅ Ranking ELO por jogo
+- ✅ Geração de chaves (brackets)
+- ✅ Partidas com resultado
+- ✅ Dashboard do usuário
+- ✅ Painel Admin
+- ✅ UI responsiva com tema dark + animações CSS
+- ✅ Fundo animado (grid + partículas + glow)
 
 ---
 
-## Inscrições
+## Próximos Passos / TODO
 
-### Listar todas as inscrições
-`GET /api/inscricoes` — **público**
-
-Serve como tabela de ranking geral. Retorna `pontosAcumulados` e `vitoriasTotais` de cada jogador por torneio.
-
-**Resposta 200:**
-```json
-[
-  {
-    "idInscricao": 1,
-    "torneio": { "idTorneio": 1, "nome": "Torneio Verão" },
-    "jogador": { "idUsuario": 4, "nickname": "joaosilva" },
-    "equipe": { "idEquipe": 1, "nomeEquipe": "Team Alpha", "tagEquipe": "ALPH" },
-    "status": "APROVADO",
-    "pontosAcumulados": 47,
-    "vitoriasTotais": 3,
-    "saldoKills": 0
-  }
-]
-```
+- [ ] WebSockets para atualizações em tempo real
+- [ ] Notificações (email/push)
+- [ ] Sistema de chat nos torneios
+- [ ] Upload de imagens (S3/local)
+- [ ] Testes automatizados (JUnit, React Testing Library)
+- [ ] CI/CD (GitHub Actions)
+- [ ] Documentação Swagger/OpenAPI
 
 ---
 
-### Listar inscrições de um torneio por status
-`GET /api/inscricoes/torneio/{idTorneio}?status=APROVADO` — **público**
+## Licença
 
-| Parâmetro | Valores possíveis | Default |
-|-----------|-------------------|---------|
-| `status` | `PENDENTE`, `APROVADO`, `REJEITADO` | `APROVADO` |
-
----
-
-### Inscrever jogador em torneio
-`POST /api/inscricoes` — **admin**
-
-A inscrição começa automaticamente como `PENDENTE`. O campo `equipe` é opcional.
-
-**Body sem equipe:**
-```json
-{
-  "torneio": { "idTorneio": 1 },
-  "jogador": { "idUsuario": 4 }
-}
-```
-
-**Body com equipe (RGN-09):**
-```json
-{
-  "torneio": { "idTorneio": 1 },
-  "jogador": { "idUsuario": 4 },
-  "equipe": { "idEquipe": 1 }
-}
-```
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | Inscrição criada com status `PENDENTE` |
-| 500 | Jogador já inscrito neste torneio |
-
----
-
-### Aprovar ou rejeitar inscrição
-`PATCH /api/inscricoes/{id}/status?status=APROVADO` — **admin**
-
-| Valor | Descrição |
-|-------|-----------|
-| `APROVADO` | Jogador liberado para participar de partidas |
-| `REJEITADO` | Jogador bloqueado |
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | Status atualizado |
-| 404 | Inscrição não encontrada |
-
----
-
-## Partidas
-
-### Listar todas as partidas
-`GET /api/partidas` — **admin**
-
----
-
-### Criar partida
-`POST /api/partidas` — **admin**
-
-**Body:**
-```json
-{
-  "torneio": { "idTorneio": 1 },
-  "faseTorneio": "Fase de Grupos"
-}
-```
-
----
-
-### Registrar resultado e atualizar Elo
-`POST /api/partidas/{id}/resultado` — **admin (criador do torneio)**
-
-O `resultadoA` é o resultado do jogador A. O jogador B recebe o inverso automaticamente. O Elo de ambos é atualizado na mesma transação.
-
-> **Fator K dinâmico:** jogadores com menos de 10 vitórias usam K=40, entre 10-30 usam K=32, acima de 30 usam K=20.
-
-**Body:**
-```json
-{
-  "idInscricaoA": 1,
-  "idInscricaoB": 2,
-  "resultadoA": "VITORIA"
-}
-```
-
-| `resultadoA` | Efeito no jogador B |
-|--------------|---------------------|
-| `VITORIA` | DERROTA |
-| `DERROTA` | VITORIA |
-| `EMPATE` | EMPATE |
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | `"Resultado registrado e rankings atualizados."` |
-| 400 | Inscrição não aprovada ou jogador contra si mesmo |
-| 403 | Apenas o criador do torneio pode registrar resultados |
-| 404 | Partida ou inscrição não encontrada |
-
----
-
-### Atualizar fase da partida
-`PUT /api/partidas/{id}` — **admin (criador do torneio)**
-
-**Body:**
-```json
-{
-  "faseTorneio": "Semifinal"
-}
-```
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | Partida atualizada |
-| 403 | Apenas o criador do torneio pode editar |
-| 404 | Partida não encontrada |
-
----
-
-### Excluir partida e reverter Elo
-`DELETE /api/partidas/{id}` — **admin (criador do torneio)**
-
-Ao excluir, o Elo de ambos os jogadores é **revertido automaticamente**.
-
-> Informe o resultado **original** da partida para que o Elo seja revertido corretamente.
-
-**Body:**
-```json
-{
-  "idInscricaoA": 1,
-  "idInscricaoB": 2,
-  "resultadoA": "VITORIA"
-}
-```
-
-| Status | Descrição |
-|--------|-----------|
-| 200 | `"Partida excluída e rankings revertidos."` |
-| 403 | Apenas o criador do torneio pode excluir |
-| 404 | Partida ou inscrição não encontrada |
-
----
-
-## Fluxo completo sugerido
-
-```
-1.  POST /api/usuarios/cadastro              → criar admin e jogadores
-2.  POST /api/usuarios/login                 → obter token JWT
-3.  POST /api/equipes                        → criar equipes (opcional)
-4.  POST /api/jogos                          → cadastrar o jogo
-5.  POST /api/torneios                       → criar torneio (criador vinculado pelo token)
-6.  POST /api/inscricoes                     → inscrever jogadores (status: PENDENTE)
-7.  PATCH /api/inscricoes/{id}/status        → aprovar inscrições
-8.  POST /api/partidas                       → criar partida
-9.  POST /api/partidas/{id}/resultado        → registrar resultado e atualizar Elo
-10. GET  /api/inscricoes                     → consultar ranking geral
-11. GET  /api/inscricoes/torneio/{id}        → ranking de um torneio específico
-```
+Projeto acadêmico — BRAAOOB (Semestre 2026)

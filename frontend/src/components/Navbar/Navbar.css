@@ -13,6 +13,40 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.navbar-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.navbar-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(124, 58, 237, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridMove 30s linear infinite;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(60px, 60px); }
+}
+
+.navbar-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 400px;
+  height: 100%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center top, rgba(124, 58, 237, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
 .navbar-container {
   display: flex;
   align-items: center;
@@ -21,6 +55,8 @@
   margin: 0 auto;
   padding: 16px 24px;
   height: 72px;
+  position: relative;
+  z-index: 1;
 }
 
 .navbar-logo {

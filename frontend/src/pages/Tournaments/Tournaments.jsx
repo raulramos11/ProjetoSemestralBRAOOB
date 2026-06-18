@@ -117,10 +117,10 @@ export default function Tournaments() {
         }).format(value);
     };
 
-    const getStatusConfig = (torneio) => {
+    const getStatusConfig = (tournament) => {
         const now = new Date();
-        const inicio = torneio.dataInicio ? new Date(torneio.dataInicio) : null;
-        const fim = torneio.dataFim ? new Date(torneio.dataFim) : null;
+        const inicio = tournament.dataInicio ? new Date(tournament.dataInicio) : null;
+        const fim = tournament.dataFim ? new Date(tournament.dataFim) : null;
         
         if (inicio && inicio > now) return { label: 'Inscrições Abertas', className: 'status-open' };
         if (inicio && fim && inicio <= now && fim >= now) return { label: 'Em Andamento', className: 'status-live' };
@@ -156,10 +156,10 @@ export default function Tournaments() {
                     </div>
                 ) : (
                     <div className="tournaments-grid">
-                        {tournaments.map(torneio => (
+                        {tournaments.map(tournament => (
                             <TournamentCard 
-                                key={torneio.idTorneio} 
-                                tournament={torneio}
+                                key={tournament.idTorneio} 
+                                tournament={tournament}
                                 formatDate={formatDate}
                                 formatCurrency={formatCurrency}
                                 getStatusConfig={getStatusConfig}
@@ -187,10 +187,10 @@ export default function Tournaments() {
 }
 
 function TournamentCard({ tournament, formatDate, formatCurrency, getStatusConfig, onNavigate }) {
-    const status = getStatusConfig(torneio);
+    const status = getStatusConfig(tournament);
     
     return (
-        <article className="tournament-card" onClick={() => onNavigate(`/tournaments/${torneio.idTorneio}`)}>
+        <article className="tournament-card" onClick={() => onNavigate(`/tournaments/${tournament.idTorneio}`)}>
             {tournament.jogo?.bannerUrl && (
                 <div 
                     className="tournament-banner"

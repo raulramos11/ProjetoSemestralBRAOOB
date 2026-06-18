@@ -21,18 +21,24 @@ export const AuthProvider = ({ children }) => {
       const currentTime = Date.now() / 1000;
 
       if (decoded.exp && decoded.exp < currentTime) {
+        console.log('Token expirado');
         api.setAuthToken(null);
         setIsLoading(false);
         return;
       }
 
       const userId = decoded.id || decoded.idUsuario || decoded.sub;
+      console.log('Carregando usuário com ID:', userId);
+      
       const userData = await api.getUser(userId);
+      console.log('Usuário carregado:', userData);
       setUser(userData);
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Failed to load user:', error);
       api.setAuthToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }

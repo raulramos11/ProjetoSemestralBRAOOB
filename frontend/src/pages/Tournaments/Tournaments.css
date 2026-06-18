@@ -20,12 +20,12 @@
 .page-header h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
 .page-subtitle {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 
@@ -39,8 +39,8 @@
   position: relative;
   border-radius: 1rem;
   overflow: hidden;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   transition: transform 0.3s, box-shadow 0.3s;
   cursor: pointer;
   min-height: 400px;
@@ -51,7 +51,7 @@
 .tournament-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  border-color: var(--color-primary);
+  border-color: var(--accent);
 }
 
 .tournament-banner {
@@ -106,10 +106,10 @@
   white-space: nowrap;
 }
 
-.status-open { background: #22c55e; }
-.status-live { background: #f59e0b; }
-.status-finished { background: #6b7280; }
-.status-pending { background: #3b82f6; }
+.status-open { background: var(--success); }
+.status-live { background: var(--warning); }
+.status-finished { background: var(--text-muted); }
+.status-pending { background: var(--accent); }
 
 .game-tag {
   font-size: 0.7rem;
@@ -128,7 +128,7 @@
 .tournament-name {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--text-primary);
   margin-bottom: 1rem;
   line-height: 1.3;
 }
@@ -145,7 +145,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .meta-icon {
@@ -154,7 +154,7 @@
 
 .tournament-footer {
   padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
 }
@@ -162,7 +162,7 @@
 .view-detail {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--accent-light);
   opacity: 0;
   transform: translateX(-10px);
   transition: opacity 0.2s, transform 0.2s;
@@ -176,10 +176,10 @@
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 1rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .empty-icon {
@@ -214,7 +214,7 @@
 }
 
 .modal {
-  background: var(--color-bg);
+  background: var(--bg);
   padding: 2rem;
   border-radius: 1rem;
   max-width: 600px;
@@ -240,11 +240,11 @@
   align-items: flex-start;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-header h2 {
-  color: var(--color-text);
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 700;
 }
@@ -253,9 +253,9 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  color: var(--color-text);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: 1.1rem;
   cursor: pointer;
   display: flex;
@@ -265,13 +265,13 @@
 }
 
 .btn-close:hover {
-  background: var(--color-border);
+  background: var(--border);
 }
 
 .form-section {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .form-section:last-of-type {
@@ -283,10 +283,10 @@
 .form-section h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--text-primary);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--color-primary);
+  border-bottom: 2px solid var(--accent);
   display: inline-block;
 }
 
@@ -304,7 +304,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: var(--color-text);
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -313,10 +313,10 @@
 .form-group textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: 1rem;
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: inherit;
@@ -326,8 +326,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
 }
 
 .form-group textarea {
@@ -337,7 +337,7 @@
 
 .error-message {
   background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  color: var(--error);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   margin-bottom: 1rem;
@@ -351,25 +351,26 @@
   justify-content: flex-end;
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 
 .btn-primary {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: all 0.2s, transform 0.1s;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
 }
 
 .btn-primary:active {
@@ -378,8 +379,8 @@
 
 .btn-secondary {
   background: transparent;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -388,8 +389,8 @@
 }
 
 .btn-secondary:hover {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-text-muted);
+  background: var(--surface);
+  border-color: var(--text-muted);
 }
 
 @media (max-width: 768px) {

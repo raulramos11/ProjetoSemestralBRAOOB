@@ -24,21 +24,25 @@ const Navbar = () => {
 
   const navLinks = [
     { path: '/', label: 'Home' },
-    { path: '/tournaments', label: 'Tournaments' },
-    { path: '/games', label: 'Games' },
-    { path: '/teams', label: 'Teams' },
-    { path: '/leaderboard', label: 'Leaderboard' },
+    { path: '/tournaments', label: 'Torneios' },
+    { path: '/games', label: 'Jogos' },
+    { path: '/teams', label: 'Equipes' },
+    { path: '/leaderboard', label: 'Ranking' },
   ];
 
   const authLinks = isAuthenticated
     ? [
-        { path: '/profile', label: 'Profile' },
+        { path: '/profile', label: 'Perfil' },
         ...(user?.perfil === 'ROLE_ADMIN' ? [{ path: '/admin', label: 'Admin' }] : []),
       ]
     : [];
 
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`} role="navigation" aria-label="Main navigation">
+      <div className="navbar-background">
+        <div className="navbar-grid" />
+        <div className="navbar-glow" />
+      </div>
       <div className="navbar-container">
         <NavLink to="/" className="navbar-logo" aria-label="Rank It Up Home">
           <span className="logo-icon">◈</span>
@@ -92,16 +96,16 @@ const Navbar = () => {
                 )}
               </button>
               <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
-                Logout
+                Sair
               </button>
             </div>
           ) : (
             <div className="auth-buttons">
               <NavLink to="/login" className="btn btn-ghost btn-sm" onClick={() => setMobileMenuOpen(false)}>
-                Login
+                Entrar
               </NavLink>
               <NavLink to="/register" className="btn btn-primary btn-sm" onClick={() => setMobileMenuOpen(false)}>
-                Register
+                Cadastrar
               </NavLink>
             </div>
           )}
@@ -111,7 +115,7 @@ const Navbar = () => {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-menu"
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
           >
             <span className="hamburger" aria-hidden="true">
               <span className={mobileMenuOpen ? 'open' : ''}></span>

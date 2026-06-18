@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
@@ -10,7 +10,10 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
+
+    const from = location.state?.from?.pathname || '/profile';
 
     const validateForm = () => {
         if (!email.trim()) {
@@ -39,12 +42,7 @@ export default function Login() {
 
         try {
             const userData = await login(email.trim(), password);
-            // Redirect based on role
-            if (userData.perfil === 'ROLE_ADMIN') {
-                navigate('/admin');
-            } else {
-                navigate('/profile');
-            }
+            navigate(from, { replace: true });
         } catch (err) {
             const msg = err.message || 'Erro ao fazer login';
             if (msg.includes('401') || msg.includes('não encontrado') || msg.includes('incorreta')) {
@@ -61,6 +59,20 @@ export default function Login() {
 
     return (
         <div className="auth-container">
+            <div className="auth-background">
+                <div className="bg-grid" />
+                <div className="bg-glow" />
+                <div className="bg-particles">
+                    <span style={{ top: '10%', left: '10%', animationDelay: '0s' }} />
+                    <span style={{ top: '20%', left: '80%', animationDelay: '2s' }} />
+                    <span style={{ top: '40%', left: '20%', animationDelay: '4s' }} />
+                    <span style={{ top: '60%', left: '70%', animationDelay: '1s' }} />
+                    <span style={{ top: '80%', left: '30%', animationDelay: '3s' }} />
+                    <span style={{ top: '30%', left: '50%', animationDelay: '5s' }} />
+                    <span style={{ top: '70%', left: '10%', animationDelay: '2.5s' }} />
+                    <span style={{ top: '90%', left: '90%', animationDelay: '1.5s' }} />
+                </div>
+            </div>
             <div className="auth-box">
                 <div className="logo-section">
                     <h1 className="logo-text">RANK IT UP!</h1>
