@@ -1,5 +1,4 @@
-// Use relative URLs so nginx proxy works from any host (Mac, Windows via AnyDesk, etc.)
-const API_BASE_URL = '';
+const API_BASE_URL = 'http://localhost:8080';
 
 class ApiService {
   constructor() {
